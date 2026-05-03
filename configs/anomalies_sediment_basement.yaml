@@ -1,0 +1,39 @@
+sediment_basement:
+  enable: true
+
+  # Interface placement
+  use_layer_labels: true
+  basement_layer_id: -1       # auto-detect deep layer
+  z0_m: [3000.0, 4000.0]
+  
+  tilt_x_m: [-200.0, 200.0]
+  tilt_y_m: [-200.0, 200.0]
+  undulation_amp_m: [400.0, 800.0]
+  undulation_kmax: [2, 5]
+  
+  edge_width_m: [30.0, 80.0]
+  interface_band_m: [50.0, 100.0]
+
+  # Background Vp modification
+  apply_mode: "blend"
+  vp_basement_mps: [5800.0, 6500.0]
+  vp_basement_grad_mps_per_m: [0.0, 0.2]
+
+  # Sediment Compaction Trends (Exponential)
+  vp_sed0_mps: [1600.0, 1800.0]
+  vp_sed_inf_mps: [3500.0, 4200.0]
+  vp_sed_scale_m: [1500.0, 2500.0]
+
+  rho_sed0_gcc: [1.9, 2.1]
+  rho_sed_inf_gcc: [2.5, 2.7]
+  rho_sed_scale_m: [2000.0, 3000.0]
+  rho_basement_gcc: [2.7, 2.9]
+
+  resist_sed0_ohmm: [2.0, 10.0]
+  resist_sed_max_ohmm: [50.0, 150.0]
+  resist_sed_scale_m: [1000.0, 2000.0]
+  resist_basement_ohmm: [1000.0, 8000.0]
+
+  chi_sed_SI: [0.0, 0.0005]
+  chi_basement_SI: [0.01, 0.05]
+  basement_chi_hetero_frac: [0.1, 0.3]

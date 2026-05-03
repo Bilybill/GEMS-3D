@@ -1,0 +1,39 @@
+# Magnetic forward modeling config
+simulation:
+  device: cuda
+
+model:
+  # Susceptibility model path
+  file_path: ../../data/examples/susceptibility.npy
+  shape: [128, 128, 64]
+  # Grid spacing (meters)
+  dx: 10.0
+  dy: 10.0
+  dz: 10.0
+
+magnetic:
+  B0: 50000.0           # Geomagnetic field intensity (nT)
+  inclination: 90.0     # Geomagnetic Inclination (degrees)
+  declination: 0.0      # Geomagnetic Declination (degrees)
+  input_type: susceptibility  # susceptibility (dimensionless SI χ) or magnetization (A/m)
+  mode: standard_B            # standard_B (spectral domain) or prism_matched (MATLAB-like reference)
+  
+  # Optional: Remanent magnetization direction
+  # mag_inclination: 45.0
+  # mag_declination: 10.0
+  
+  heights_m: [0.0]      # Observation heights above surface (m)
+  output_unit: nt       # nt (nanoTesla) or si (Tesla)
+  pad_factor: 2
+
+observation:
+  layout: grid
+  n_x: 128
+  n_y: 128
+  first_x: 0
+  first_y: 0
+  d_x: 1
+  d_y: 1
+
+output:
+  save_path: ../../outputs/magnetic_data.npz

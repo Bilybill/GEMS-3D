@@ -1,0 +1,34 @@
+brine_fault_zone:
+  enable: true
+
+  # pick 1 or 2 main fault corridors
+  top_k: [1, 2]
+
+  # fault-likelihood threshold (higher -> fewer, cleaner, more "main faults")
+  fault_quantile: [0.993, 0.998]
+
+  # smooth likelihood field (meters)
+  smooth_sigma_m: [10.0, 45.0]
+
+  # discard small fault pieces
+  min_component_voxels: [2500, 12000]
+
+  # geometry (meters)
+  core_thickness_m: [15.0, 60.0]
+  damage_width_m: [80.0, 320.0]
+  edge_width_m: [10.0, 35.0]
+
+  # bead-like segmentation
+  patch_enable: true
+  patch_sigma_m: [120.0, 300.0]
+  patch_strength: [0.5, 0.95]
+  patch_threshold: [-0.2, 0.2]
+  patch_soft: [0.15, 0.35]
+
+  # resistivity painting (Ohm·m)
+  rho_core_ohmm: [0.2, 2.0]
+  rho_damage_factor: [0.15, 0.45]
+
+  # optional Vp change (default 0, keep your seismic unchanged)
+  vp_delta_frac_in_damage: [0.0, 0.0]
+  vp_delta_frac_in_core: [0.0, 0.0]

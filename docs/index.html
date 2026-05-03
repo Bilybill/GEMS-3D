@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GEMS-3D</title>
+  <meta name="description" content="GEMS-3D: a 3D geological multiphysics simulation dataset and benchmark.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#">GEMS-3D</a>
+    <nav aria-label="Primary">
+      <a href="#dataset">Dataset</a>
+      <a href="#tasks">Tasks</a>
+      <a href="#code">Code</a>
+      <a href="#citation">Citation</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Geological Multiphysics Earth Simulation</p>
+        <h1>GEMS-3D</h1>
+        <p class="lead">
+          A 3D synthetic geoscience benchmark for aligned geological models and gravity, magnetic,
+          magnetotelluric, and seismic forward responses.
+        </p>
+        <div class="actions">
+          <a class="button primary" href="../README.md">Read README</a>
+          <a class="button" href="#code">View Structure</a>
+        </div>
+      </div>
+      <figure class="hero-media">
+        <img src="assets/3d_anomalies_preview.png" alt="Preview of GEMS-3D geological anomaly volumes">
+      </figure>
+    </section>
+
+    <section id="dataset" class="band">
+      <div class="section-head">
+        <p class="eyebrow">Dataset</p>
+        <h2>Aligned 3D models and four forward modalities</h2>
+      </div>
+      <div class="feature-grid">
+        <article>
+          <h3>Property Volumes</h3>
+          <p>Each generated sample stores aligned `vp`, `rho`, `res`, and `chi` volumes with anomaly labels and source metadata.</p>
+        </article>
+        <article>
+          <h3>Geological Targets</h3>
+          <p>Registry presets cover igneous intrusions, salt domes, brine faults, sulfides, hydrates, gas systems, basement interfaces, and alteration zones.</p>
+        </article>
+        <article>
+          <h3>Forward Bundles</h3>
+          <p>Responses are packed into `forward_bundle.npz` with observation geometry, frequency axes, acquisition settings, and method status fields.</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="tasks" class="band muted">
+      <div class="section-head">
+        <p class="eyebrow">Benchmark</p>
+        <h2>Forward, inverse, and robustness tasks</h2>
+      </div>
+      <div class="task-list">
+        <div><strong>Forward surrogates</strong><span>`rho -> gravity`, `chi -> magnetic`, `res -> MT`, `vp -> seismic`, and joint multimodal prediction.</span></div>
+        <div><strong>Inverse interpretation</strong><span>Anomaly-family classification with single-modality and multimodal baselines.</span></div>
+        <div><strong>Robustness</strong><span>Missing-modality evaluation and modality-shuffled consistency controls.</span></div>
+      </div>
+    </section>
+
+    <section id="code" class="band">
+      <div class="section-head">
+        <p class="eyebrow">Code</p>
+        <h2>Public release structure</h2>
+      </div>
+      <pre><code>core/                         anomaly registry and multiphysics builders
+Gravity/ Magnetic/ Electrical/ Seismic/
+                              forward-modeling implementations
+experiments/                  benchmark datasets, models, training, evaluation
+configs/                      anomaly and randomization presets
+docs/                         project homepage</code></pre>
+    </section>
+
+    <section id="citation" class="band muted">
+      <div class="section-head">
+        <p class="eyebrow">Citation</p>
+        <h2>Dataset paper citation placeholder</h2>
+      </div>
+      <pre><code>@misc{gems3d2026,
+  title = {GEMS-3D: Geological Multiphysics Earth Simulation in 3D},
+  author = {GEMS-3D Contributors},
+  year = {2026}
+}</code></pre>
+    </section>
+  </main>
+</body>
+</html>

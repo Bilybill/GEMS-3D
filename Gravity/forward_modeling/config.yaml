@@ -1,0 +1,31 @@
+# Gravity forward modeling config (GMESDataset/Gravity/forward_modeling/config.yaml)
+simulation:
+  device: cuda
+
+model:
+  # Density model path (relative paths are resolved relative to this config file)
+  file_path: ../../data/examples/density.npy
+  density_unit: g/cm^3                     # canonical project density unit
+  shape: [256, 256, 256]                  # required for .bin or if file_path missing
+  dx: 10.0
+  dy: 10.0
+  dz: 12.5
+  default_density: 2.67
+
+gravity:
+  heights_m: [0.0]          # observation height above surface (m)
+  output_unit: mgal         # si / mgal / ugal
+  pad_factor: 2
+  G: 6.67430e-11
+
+  observation:
+    layout: grid
+    n_x: 256
+    n_y: 256
+    first_x: 0
+    first_y: 0
+    d_x: 1
+    d_y: 1
+
+output:
+  save_path: ../../outputs/gravity_data.npz

@@ -1,0 +1,73 @@
+# configs/anomalies_salt.yaml
+
+# IMPORTANT: your vp file order
+# - xyz: vp[nx, ny, nz]  (you said your 256^3 is x*y*z)
+# - zyx: vp[nz, ny, nx]
+vp_order: xyz
+
+grid:
+  nx: 256
+  ny: 256
+  nz: 256
+  dx: 10.0
+  dy: 10.0
+  dz: 12.5
+
+dataset:
+  n_samples: 50
+  out_root: "data/salt_domes_256"
+  save_float32: true
+  make_quicklook: true
+  quicklook_slices:
+    z: 96
+    y: 128
+    x: 128
+
+salt_dome:
+  # salt vp (m/s)
+  vp_salt_mps: [4500.0, 5500.0]
+
+  # soft boundary width (meters), 2~6 cells typically
+  edge_width_m: [20.0, 60.0]
+
+  # top/base depth (meters, z positive downward)
+  z_top_m:  [400.0, 1200.0]
+  z_base_m: [1800.0, 3000.0]
+
+  # radii (meters)
+  stem_radius_m: [80.0, 250.0]
+  mid_radius_m:  [250.0, 650.0]
+  canopy_amp_m:  [100.0, 800.0]
+
+  # canopy location within [top, base]
+  canopy_center_frac: [0.15, 0.35]
+  canopy_sigma_frac:  [0.08, 0.20]
+
+  # centerline tilt/meander
+  tilt_xy_m: [-500.0, 500.0]   # drift from base to top
+  meander_amp_m: [0.0, 150.0]  # additional smooth wobble
+  meander_knots: 6
+
+  # boundary roughness / salt tongues
+  roughness_eps: [0.00, 0.15]
+  roughness_decay_frac: [0.20, 0.80]
+
+  # Fourier azimuth modes for non-axisymmetry
+  azimuth_modes: [2, 6]
+  azimuth_power: 1.4
+
+  # optional: record petrophysics values in meta.json (not used for vp generation)
+  petrophysics_meta:
+    rho_salt_gcc: [2.15, 2.18]
+    resistivity_salt_ohmm: [300.0, 10000.0]
+    chi_salt_si: [-5.0e-5, 1.0e-5]
+
+warp:
+  enable: true
+  amp_m: [80.0, 400.0]           # uplift amplitude
+  sigma_factor: [1.5, 3.0]        # influence radius ~ sigma_factor * R0(z)
+  z_peak_bias_frac: [-0.05, 0.10] # shift peak relative to canopy center
+  z_sigma_m: [300.0, 900.0]       # vertical extent of warp
+
+random:
+  seed: 20260207

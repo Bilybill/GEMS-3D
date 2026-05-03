@@ -1,0 +1,48 @@
+# Parameter ranges for SerpentinizedZone (for batch generation)
+# You can sample uniformly (or log-uniform where marked) within each range.
+# Units: meters unless specified.
+
+SerpentinizedZone:
+  enabled: true
+  count_per_model: [0, 2]            # how many serpentinized zones per volume
+
+  # mode: corridor (continuous ribbon) or patchy (blobs along corridor)
+  mode: ["corridor", "patchy"]
+  use_layer_labels: [true, false]
+
+  # if use_layer_labels==true:
+  #   layer_id: -1 auto-pick mid layer; or set to a specific layer number >=0
+  layer_id: [-1, -1]
+
+  center_x_m: [400, 2200]
+  center_y_m: [400, 2200]
+  corridor_length_m: [900, 2400]
+  corridor_halfwidth_m: [120, 420]
+  corridor_irregularity: [0.0, 0.45]
+
+  # geometric depth (used when not label-anchored or invalid layer columns)
+  z_center_m: [2200, 5200]
+  thickness_m: [180, 520]
+  undulation_amp_m: [20, 120]
+  undulation_kmax: [1, 4]
+
+  # patchiness (only when mode=patchy)
+  patch_count: [3, 10]
+  patch_radius_m: [140, 320]
+  patch_radius_var: [0.15, 0.45]
+
+  # soft edges / halo
+  edge_width_m: [30, 90]
+  halo_thickness_m: [120, 420]
+
+  # property coupling (core)
+  # vp_delta_frac is negative for Vp decrease: e.g., -0.35 means 35% drop
+  vp_delta_frac: [-0.40, -0.15]
+  rho_delta_frac: [-0.18, -0.05]
+  chi_add_SI: [0.008, 0.03]
+
+  # backgrounds (if you let this class generate rho/chi from constants)
+  rho_bg_gcc: [2.55, 2.85]
+  chi_bg_SI: [0.0005, 0.003]
+
+  rng_seed: [0, 999999]

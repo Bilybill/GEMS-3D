@@ -1,0 +1,122 @@
+global:
+  # Shared soft-boundary randomness for most anomalies that expose edge_width_m.
+  edge_width_m:
+    min: 12.0
+    max: 32.0
+
+anomalies:
+  igneous_swarm:
+    dyke_thickness_m:
+      min: 20.0
+      max: 30.0
+    dyke_strike_deg:
+      min: 15.0
+      max: 75.0
+    dyke_dip_deg:
+      min: 85.0
+      max: 89.5
+    swarm_count:
+      min: 8
+      max: 16
+      type: int
+    swarm_spacing_m:
+      min: 70.0
+      max: 220.0
+    swarm_thickness_min_m:
+      min: 18.0
+      max: 24.0
+    swarm_thickness_max_m:
+      min: 26.0
+      max: 34.0
+
+  brine_fault:
+    top_k:
+      choices: [1, 2]
+    fault_quantile:
+      min: 0.994
+      max: 0.9985
+    core_thickness_m:
+      min: 20.0
+      max: 60.0
+    damage_width_m:
+      min: 120.0
+      max: 320.0
+    rho_core_ohmm:
+      min: 0.2
+      max: 1.2
+    rho_damage_factor:
+      min: 0.14
+      max: 0.40
+
+  massive_sulfide:
+    lens_extent_x_m:
+      min: 320.0
+      max: 900.0
+    lens_extent_y_m:
+      min: 220.0
+      max: 760.0
+    lens_thickness_m:
+      min: 80.0
+      max: 180.0
+    chimney_height_m:
+      min: 650.0
+      max: 1400.0
+    stockwork_height_m:
+      min: 550.0
+      max: 1400.0
+    chi_massive_si:
+      min: 0.009
+      max: 0.016
+    chi_chimney_si:
+      min: 0.0035
+      max: 0.008
+    chi_stockwork_si:
+      min: 0.0008
+      max: 0.0025
+
+  salt_dome:
+    z_top_m:
+      min: 300.0
+      max: 1200.0
+    z_base_m:
+      min: 1800.0
+      max: 3000.0
+    stem_radius_m:
+      min: 120.0
+      max: 320.0
+    mid_radius_m:
+      min: 350.0
+      max: 800.0
+    canopy_amp_m:
+      min: 120.0
+      max: 720.0
+    warp_amp_m:
+      min: 80.0
+      max: 420.0
+
+  serpentinized:
+    corridor_length_m:
+      min: 1200.0
+      max: 4200.0
+    corridor_halfwidth_m:
+      min: 140.0
+      max: 320.0
+    thickness_m:
+      min: 260.0
+      max: 720.0
+    fault_gate_radius_m:
+      min: 180.0
+      max: 380.0
+    matrix_volume_frac:
+      min: 0.55
+      max: 0.68
+    block_target_frac:
+      min: 0.22
+      max: 0.35
+    resolved_block_count:
+      min: 18
+      max: 40
+      type: int
+    chi_add_SI:
+      min: 0.008
+      max: 0.03

@@ -1,0 +1,86 @@
+# Simulation Configuration
+simulation:
+  mode: "2D" # "2D" or "3D"
+  device: "cuda" # "cuda" or "cpu"
+
+acquisition:
+  default_y: "center"   # For 3D: "center" or specific integer index
+  oob_policy: "error"   # "error" (raise exception) or "clamp" (clamp to boundary)
+  show_geometry: true   # Whether to plot the acquisition geometry before simulation
+
+model:
+  file_path: "velocity_model.npy" # Path to the velocity model file (.npy/npz/bin/segy)
+  shape: [256, 200]             # 2D: [nx, nz], 3D: [nx, ny, nz]
+  dx: 10.0                      # Grid spacing x (m)
+  dy: 10.0                      # Grid spacing y (m) - ignored in 2D
+  dz: 10.0                      # Grid spacing z (m)
+  
+  # Ranges for NPZ composite model
+  trends_range: [2000, 6000]
+  details_range: [-500, 1000]
+  mdetails_range: [-200, 200]
+  
+time:
+  nt: 1000                      # Number of time steps
+  dt: 0.001                     # Time step interval (s)
+
+source:
+  type: "ricker"                # Wavelet type
+  freq: 25                      # Central frequency (Hz) for Ricker
+  amplitude: 1.0
+  n_sources_per_shot: 1         # Number of sources firing simultaneously per shot
+
+  
+  # --- Source Layout Options ---
+  layout: "line"                # "line", "grid" (3D only), or "points"
+  source_depth: 2               # Depth index (Z)
+
+  # Option 1: Line (also compatible with old config)
+  n_shots: 5
+  first_source: 10
+  d_source: 20
+  # source_y: "center"        # Optional for 3D line
+
+  # Option 2: Grid (3D Only) -> automatically calculates n_shots
+  # n_shots_x: 5
+  # n_shots_y: 5
+  # first_source_x: 10
+  # first_source_y: 10
+  # d_source_x: 20
+  # d_source_y: 20
+  
+  # Option 3: Points
+  # locations: [[100, 2], [120, 2]] # Explicit coordinates
+
+receiver:
+  # --- Receiver Type & Layout ---
+  type: "fixed"               # "fixed", "rolling", or "patch"
+  layout: "line"              # "line" or "grid" (3D)
+  receiver_depth: 2
+
+  # Common Parameters
+  n_receivers_per_shot: 150   # For "grid", calculate as nx*ny manually or use grid params below
+
+  # -- Type: Fixed --
+  # Line
+  first_receiver: 10
+  d_receiver: 1
+  # Grid (3D only)
+  # n_receivers_x: 100
+  # n_receivers_y: 100
+  # first_receiver_x: 0
+  # first_receiver_y: 0
+  # d_receiver_x: 1
+  # d_receiver_y: 1
+  
+  # -- Type: Rolling (Relative to source) --
+  # offset_first: -75         # Start offset (grid points)
+  # d_offset: 1               # Offset step
+  # receiver_y_offset: 0      # 3D only
+  
+  # -- Type: Patch (Symmetric around source) --
+  # patch_half_span: 100      # +/- span
+  # patch_d: 1
+
+output:
+  save_path: "shot_gathers.npy"

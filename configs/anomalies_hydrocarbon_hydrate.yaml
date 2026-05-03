@@ -1,0 +1,60 @@
+# configs/anomalies_hydrocarbon_hydrate.yaml
+# Parameter ranges for HydrocarbonHydrate anomaly
+
+HydrocarbonHydrate:
+  common:
+    edge_width_m: [10.0, 40.0]
+    halo_enable: [true, false]
+    halo_thickness_m: [60.0, 200.0]
+    halo_vp_delta_frac: [0.0, 0.02]
+    # layer control (optional)
+    layer_id: [-1]              # -1 means auto-pick; or set [k,k] fixed in your batch
+    anchor_alpha: [0.35, 0.70]
+    hard_gate_to_layer: [true, false]
+    min_layer_thickness_m: [50.0, 120.0]
+
+  gas:
+    kind: ["gas"]
+    center_x_m: ["uniform_in_model"]  # 你在采样器里映射到 [0.2L,0.8L]
+    center_y_m: ["uniform_in_model"]
+
+    lens_extent_x_m: [400.0, 1800.0]
+    lens_extent_y_m: [300.0, 1400.0]
+    lens_thickness_m: [40.0, 220.0]
+    lens_thickness_var_frac: [0.10, 0.40]
+    lens_window_irregularity: [0.2, 1.2]
+    lens_undulation_amp_m: [0.0, 25.0]
+    lens_undulation_kmax: [2, 5]
+
+    vp_gas_mps: [1400.0, 2600.0]     # 低速异常（气）
+    gas_enable_chimney: [true, false]
+    chimney_height_m: [400.0, 1800.0]
+    chimney_radius_top_m: [20.0, 100.0]
+    chimney_radius_base_m: [60.0, 220.0]
+    chimney_drift_m: [0.0, 500.0]
+    chimney_drift_knots: [4, 10]
+    chimney_taper_power: [0.8, 2.0]
+
+  hydrate:
+    kind: ["hydrate"]
+    center_x_m: ["uniform_in_model"]
+    center_y_m: ["uniform_in_model"]
+
+    # BSR-parallel hydrate layer
+    hydrate_extent_x_m: [1200.0, 3200.0]
+    hydrate_extent_y_m: [1200.0, 3200.0]
+    hydrate_offset_above_m: [0.0, 120.0]
+    hydrate_thickness_m: [20.0, 120.0]
+    vp_hydrate_mps: [3200.0, 4200.0] # 增速（固结）
+
+    hydrate_enable_patchy: [true, false]
+    hydrate_patch_kmax: [2, 6]
+    hydrate_patch_scale_x_m: [600.0, 2400.0]
+    hydrate_patch_scale_y_m: [600.0, 2400.0]
+    hydrate_patch_threshold: [-0.1, 0.35]  # 越大越“稀疏斑块”
+
+    # free gas below BSR
+    hydrate_enable_free_gas_below: [true, false]
+    free_gas_offset_below_m: [10.0, 150.0]
+    free_gas_thickness_m: [20.0, 150.0]
+    vp_free_gas_mps: [1500.0, 2600.0]

@@ -1,0 +1,72 @@
+# Simulation Configuration
+simulation:
+  mode: "3D"          # 设置为 3D 模式
+  device: "cuda"      # 建议在 GPU 上运行，3D 模拟计算量大
+  pml_threshold: 6.0  # 抗频散阈值 (points per minimum wavelength)
+  measure_time: false  # 是否计算正演模拟运行时间
+
+acquisition:
+  default_y: "center"
+  oob_policy: "error"
+  show_geometry: false # 自动运行时关闭绘图，以免阻塞脚本
+
+model:
+  # 如果文件不存在，utils.py 会自动生成一个常速度模型用于测试
+  file_path: "../../data/examples/vp.sgy"
+  shape: [256, 256, 256]  # [nx, ny, nz]
+  dx: 10.0
+  dy: 10.0
+  dz: 25.0
+
+  # Optional: Inject anomalies (3D)
+  anomalies:
+    enabled: false
+    seed: 2025
+    clip: [1500, 6500]
+    items:
+      - type: "cylinder"
+        center: [120, 120, 60]
+        radius: 12
+        z_range: [40, 160]
+        dv: 300
+        mode: "add"
+        taper: 4
+  
+time:
+  nt: 750             # 时间步数
+  dt: 0.004           # 时间间隔 (s)
+  suggest_t_calculate: false # Whether to auto-calculate duration. Default False.
+
+source:
+  type: "ricker"
+  freq: [10, 25]      # 可以在这里设置频率范围 [min, max]，每次运行随机选择
+  amplitude: 1.0
+  n_sources_per_shot: 1 # Number of sources firing simultaneously per shot
+
+  
+  # --- Source Layout (3D Grid) ---
+  layout: "grid_random" # 新增: "grid_random" 模式
+  source_depth: 2
+  
+  n_shots_x: 5        # 将范围分成 5x5 的网格块
+  n_shots_y: 5        # 在每个块内随机选取一个位置
+  # first_source_x: 25  # grid_random 模式下不需要指定起始和间隔，自动覆盖全图
+  # first_source_y: 25  
+  # d_source_x: 52      
+  # d_source_y: 52      
+
+receiver:
+  type: "fixed"
+  layout: "grid"      # 检波器也是网格分布
+  receiver_depth: 2
+
+  # 覆盖整个表面的检波器网格
+  n_receivers_x: 64
+  n_receivers_y: 64
+  first_receiver_x: 0
+  first_receiver_y: 0
+  d_receiver_x: 4
+  d_receiver_y: 4
+
+output:
+  save_path: "../../outputs/shot_gathers_3D.npz"

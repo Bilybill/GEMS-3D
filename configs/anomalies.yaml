@@ -1,0 +1,8 @@
+# Config for anomalies
+types: [ellipsoid]
+
+ellipsoid:
+  prob: 0.8
+  vp_perturbation_range: [-0.1, 0.1]
+  size_range_m: [500, 2000]
+  depth_range: [1000, 4000]

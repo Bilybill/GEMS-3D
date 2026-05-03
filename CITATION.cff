@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use GEMS-3D, please cite the accompanying dataset paper."
+title: "GEMS-3D: Geological Multiphysics Earth Simulation in 3D"
+authors:
+  - family-names: "GEMS-3D Contributors"
+version: "0.1.0"
+date-released: "2026-05-03"
+repository-code: "https://github.com/gems-3d/GEMS-3D"
+license: "MIT"

@@ -1,0 +1,82 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gems-3d"
+version = "0.1.0"
+description = "GEMS-3D: a 3D geological multiphysics simulation and benchmark toolkit."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  {name = "GEMS-3D contributors"}
+]
+keywords = [
+  "geophysics",
+  "multiphysics",
+  "synthetic dataset",
+  "forward modeling",
+  "earth science",
+  "benchmark"
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+  "License :: OSI Approved :: MIT License"
+]
+dependencies = [
+  "numpy",
+  "scipy",
+  "matplotlib",
+  "torch",
+  "PyYAML",
+  "tqdm",
+  "loguru",
+  "segyio"
+]
+
+[project.optional-dependencies]
+seismic = ["deepwave"]
+visualization = ["cigvis"]
+dev = ["pytest", "ruff"]
+
+[project.urls]
+Homepage = "https://github.com/gems-3d/GEMS-3D"
+Documentation = "https://gems-3d.github.io/GEMS-3D/"
+Repository = "https://github.com/gems-3d/GEMS-3D"
+
+[project.scripts]
+gems-build-pretraining = "build_pretraining_dataset:main"
+gems-forward-from-models = "run_pretraining_forward_from_models:main"
+gems-plot-forward = "plot_saved_forward_data:main"
+
+[tool.setuptools]
+py-modules = [
+  "build_pretraining_dataset",
+  "model_qc_report",
+  "plot_saved_forward_data",
+  "run_all_anomalies_viz",
+  "run_multiphysics_forward",
+  "run_multiphysics_viz",
+  "run_pretraining_forward_from_models",
+  "run_separate_anomalies_viz",
+  "visualize_pretraining_sample"
+]
+
+[tool.setuptools.packages.find]
+include = [
+  "core*",
+  "experiments*",
+  "Gravity*",
+  "Magnetic*",
+  "Seismic*",
+  "Electrical*"
+]
+namespaces = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
