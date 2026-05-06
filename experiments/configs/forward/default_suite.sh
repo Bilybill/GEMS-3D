@@ -40,12 +40,12 @@ declare -A FORWARD_TASK_MODELS=(
 )
 
 declare -A FORWARD_BATCH_SIZE=(
-  ["rho_to_gravity"]="1"
-  ["chi_to_magnetic"]="1"
-  ["res_to_mt"]="1"
-  ["vp_to_seismic"]="1"
-  ["vp_source_to_seismic_shot"]="1"
-  ["joint_multiphysics"]="1"
+  ["rho_to_gravity"]="8"
+  ["chi_to_magnetic"]="8"
+  ["res_to_mt"]="4"
+  ["vp_to_seismic"]="4"
+  ["vp_source_to_seismic_shot"]="4"
+  ["joint_multiphysics"]="4"
 )
 
 declare -A FORWARD_EPOCHS=(
@@ -67,7 +67,8 @@ declare -A FORWARD_LR=(
 )
 
 FORWARD_WEIGHT_DECAY="${FORWARD_WEIGHT_DECAY:-1e-4}"
-FORWARD_NUM_WORKERS="${FORWARD_NUM_WORKERS:-4}"
+FORWARD_NUM_WORKERS="${FORWARD_NUM_WORKERS:-12}"
+FORWARD_PREFETCH_FACTOR="${FORWARD_PREFETCH_FACTOR:-2}"
 FORWARD_VAL_FRACTION="${FORWARD_VAL_FRACTION:-0.1}"
 FORWARD_SEED="${FORWARD_SEED:-42}"
 FORWARD_DEVICE="${FORWARD_DEVICE:-cuda}"

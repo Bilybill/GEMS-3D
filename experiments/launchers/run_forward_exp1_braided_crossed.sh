@@ -20,6 +20,7 @@
 #   phase2 : res_to_mt
 #   phase3 : vp_source_to_seismic_shot
 #   phase4 : joint_multiphysics
+#   table  : all main-table forward tasks and model families
 #   full   : all tasks above
 #
 # Common usage:
@@ -68,12 +69,16 @@ case "${EXP1_PHASE}" in
     DEFAULT_TASK_FILTER="joint_multiphysics"
     DEFAULT_MODEL_FILTER="unet,fno"
     ;;
+  table)
+    DEFAULT_TASK_FILTER="rho_to_gravity,chi_to_magnetic,res_to_mt,vp_to_seismic,vp_source_to_seismic_shot"
+    DEFAULT_MODEL_FILTER="unet,pinn,deeponet,fno,gnot,shot_film"
+    ;;
   full)
     DEFAULT_TASK_FILTER="rho_to_gravity,chi_to_magnetic,res_to_mt,vp_source_to_seismic_shot,joint_multiphysics"
-    DEFAULT_MODEL_FILTER="unet,fno,shot_film"
+    DEFAULT_MODEL_FILTER="unet,pinn,deeponet,fno,gnot,shot_film"
     ;;
   *)
-    echo "Error: unsupported EXP1_PHASE='${EXP1_PHASE}'. Expected one of: phase1, phase2, phase3, phase4, full."
+    echo "Error: unsupported EXP1_PHASE='${EXP1_PHASE}'. Expected one of: phase1, phase2, phase3, phase4, table, full."
     exit 1
     ;;
 esac

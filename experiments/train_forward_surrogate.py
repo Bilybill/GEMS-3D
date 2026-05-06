@@ -8,7 +8,6 @@ import time
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -24,6 +23,7 @@ from experiments.datasets.gmes_forward_dataset import (
     infer_output_spec_from_sample,
 )
 from experiments.models.registry import AVAILABLE_FORWARD_MODELS, build_forward_model
+from experiments.utils.dataloading import build_data_loader
 from experiments.utils.metrics_forward import (
     AverageMeter,
     build_forward_metric_meters,
@@ -229,8 +229,8 @@ def run_epoch(model, loader, optimizer, device, training: bool, target_scales=No
 
 def parse_args():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_root = os.path.abspath(os.path.join(script_dir, "..", "DATAFOLDER", "PretrainDataset_forward"))
-    default_output_root = os.path.abspath(os.path.join(script_dir, "..", "DATAFOLDER", "ExperimentRuns", "forward_surrogates"))
+    default_root = os.path.abspath(os.path.join(script_dir, "..", "outputs", "PretrainDataset_forward"))
+    default_output_root = os.path.abspath(os.path.join(script_dir, "..", "outputs", "ExperimentRuns", "forward_surrogates"))
 
     parser = argparse.ArgumentParser(description="Train forward-operator surrogates for GMES-3D.")
     parser.add_argument("--root", type=str, default=default_root, help="Root directory containing forward_bundle.npz files.")
@@ -254,6 +254,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1.0e-3)
     parser.add_argument("--weight-decay", type=float, default=1.0e-4)
     parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--prefetch-factor", type=int, default=2)
     parser.add_argument("--val-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
@@ -336,9 +337,30 @@ def main():
         ).to(device)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-    heldout_loader = DataLoader(heldout_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    train_loader = build_data_loader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        device=device,
+        prefetch_factor=args.prefetch_factor,
+    )
+    val_loader = build_data_loader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        device=device,
+        prefetch_factor=args.prefetch_factor,
+    )
+    heldout_loader = build_data_loader(
+        heldout_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        device=device,
+        prefetch_factor=args.prefetch_factor,
+    )
 
     run_name = f"{args.task}_{args.model}"
     output_dir = os.path.abspath(os.path.join(args.output_root, run_name))

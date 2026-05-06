@@ -41,6 +41,36 @@ def log_standardize_volume(volume: np.ndarray, eps: float = 1.0e-6) -> np.ndarra
     return standardize_volume(np.log10(safe), eps=eps)
 
 
+def downsample_volume_mean(volume: np.ndarray, output_shape: tuple[int, int, int]) -> np.ndarray:
+    volume = np.asarray(volume, dtype=np.float32)
+    if volume.ndim != 3:
+        raise ValueError(f"Expected a 3D volume, got shape {volume.shape}.")
+    target_z, target_y, target_x = tuple(int(x) for x in output_shape)
+    if (target_z, target_y, target_x) == tuple(volume.shape):
+        return volume.astype(np.float32, copy=False)
+
+    if (
+        volume.shape[0] % target_z == 0
+        and volume.shape[1] % target_y == 0
+        and volume.shape[2] % target_x == 0
+    ):
+        factor_z = volume.shape[0] // target_z
+        factor_y = volume.shape[1] // target_y
+        factor_x = volume.shape[2] // target_x
+        return volume.reshape(target_z, factor_z, target_y, factor_y, target_x, factor_x).mean(axis=(1, 3, 5)).astype(np.float32, copy=False)
+
+    z_bins = np.array_split(np.arange(volume.shape[0]), target_z)
+    y_bins = np.array_split(np.arange(volume.shape[1]), target_y)
+    x_bins = np.array_split(np.arange(volume.shape[2]), target_x)
+
+    reduced = np.zeros((target_z, target_y, target_x), dtype=np.float32)
+    for iz, z_idx in enumerate(z_bins):
+        for iy, y_idx in enumerate(y_bins):
+            for ix, x_idx in enumerate(x_bins):
+                reduced[iz, iy, ix] = float(volume[np.ix_(z_idx, y_idx, x_idx)].mean())
+    return reduced
+
+
 def standardize_map(array: np.ndarray, eps: float = 1.0e-6) -> np.ndarray:
     return standardize_volume(np.asarray(array, dtype=np.float32), eps=eps)
 

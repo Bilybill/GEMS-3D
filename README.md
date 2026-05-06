@@ -103,8 +103,8 @@ python experiments/train_forward_surrogate.py --root outputs/PretrainDataset_for
 Current benchmark scope:
 
 - Forward surrogates: `rho -> gravity`, `chi -> magnetic`, `res -> MT`, `vp -> seismic`, and joint four-property input.
-- Inverse interpretation: anomaly-family classification.
-- Robustness evaluation: missing-modality and modality-shuffle controls.
+- Inverse interpretation: observation-to-property reconstruction plus anomaly-family classification utilities.
+- Robustness evaluation: modality completion, degraded-observation inverse evaluation, and modality-shuffle controls.
 
 ## Project Page
 

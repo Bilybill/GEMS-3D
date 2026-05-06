@@ -6,7 +6,6 @@ import os
 import sys
 
 import torch
-from torch.utils.data import DataLoader
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -15,6 +14,7 @@ if PROJECT_ROOT not in sys.path:
 from experiments.datasets.gmes_inverse_dataset import GMESInverseDataset, normalize_modalities
 from experiments.models.fusion import LateFusionClassifier
 from experiments.train_classification import _resolve_device, build_classification_splits
+from experiments.utils.dataloading import build_data_loader
 from experiments.utils.metrics_classification import summarize_classification_metrics
 
 
@@ -40,7 +40,7 @@ def _evaluate_with_missing_modalities(model, loader, device, drop_modalities: tu
 
 def parse_args():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_root = os.path.abspath(os.path.join(script_dir, "..", "DATAFOLDER", "PretrainDataset_forward"))
+    default_root = os.path.abspath(os.path.join(script_dir, "..", "outputs", "PretrainDataset_forward"))
 
     parser = argparse.ArgumentParser(description="Evaluate missing-modality robustness for GMES-3D classifiers.")
     parser.add_argument("--checkpoint", type=str, required=True)
@@ -53,6 +53,7 @@ def parse_args():
     )
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--prefetch-factor", type=int, default=2)
     parser.add_argument("--val-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--split", type=str, default="heldout", choices=["val", "heldout"])
@@ -78,7 +79,14 @@ def main():
     )
     records = val_records if args.split == "val" else heldout_records
     dataset = GMESInverseDataset(records, modalities=modalities, anomaly_to_index=anomaly_to_index)
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    loader = build_data_loader(
+        dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        device=device,
+        prefetch_factor=args.prefetch_factor,
+    )
 
     model = LateFusionClassifier(
         modalities=modalities,

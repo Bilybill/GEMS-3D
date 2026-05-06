@@ -8,7 +8,6 @@ import sys
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if PROJECT_ROOT not in sys.path:
@@ -22,6 +21,7 @@ from experiments.datasets.gmes_inverse_dataset import (
     normalize_modalities,
 )
 from experiments.models.fusion import LateFusionClassifier
+from experiments.utils.dataloading import build_data_loader
 from experiments.utils.metrics_classification import summarize_classification_metrics
 from experiments.utils.splits import split_records_by_background
 
@@ -111,8 +111,8 @@ def run_classification_epoch(model, loader, optimizer, device, training: bool):
 
 def parse_args():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    default_root = os.path.abspath(os.path.join(script_dir, "..", "DATAFOLDER", "PretrainDataset_forward"))
-    default_output_root = os.path.abspath(os.path.join(script_dir, "..", "DATAFOLDER", "ExperimentRuns", "classification"))
+    default_root = os.path.abspath(os.path.join(script_dir, "..", "outputs", "PretrainDataset_forward"))
+    default_output_root = os.path.abspath(os.path.join(script_dir, "..", "outputs", "ExperimentRuns", "classification"))
 
     parser = argparse.ArgumentParser(description="Train GMES-3D anomaly-family classifiers.")
     parser.add_argument("--root", type=str, default=default_root)
@@ -140,6 +140,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1.0e-3)
     parser.add_argument("--weight-decay", type=float, default=1.0e-4)
     parser.add_argument("--num-workers", type=int, default=0)
+    parser.add_argument("--prefetch-factor", type=int, default=2)
     parser.add_argument("--val-fraction", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--embedding-dim", type=int, default=128)
@@ -188,9 +189,30 @@ def main():
     ).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True, num_workers=args.num_workers)
-    val_loader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
-    heldout_loader = DataLoader(heldout_dataset, batch_size=args.batch_size, shuffle=False, num_workers=args.num_workers)
+    train_loader = build_data_loader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        num_workers=args.num_workers,
+        device=device,
+        prefetch_factor=args.prefetch_factor,
+    )
+    val_loader = build_data_loader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        device=device,
+        prefetch_factor=args.prefetch_factor,
+    )
+    heldout_loader = build_data_loader(
+        heldout_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        device=device,
+        prefetch_factor=args.prefetch_factor,
+    )
 
     run_name = "_".join(modalities)
     output_dir = os.path.abspath(os.path.join(args.output_root, run_name))

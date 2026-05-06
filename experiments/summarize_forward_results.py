@@ -64,6 +64,10 @@ def _float_or_none(value):
         return None
 
 
+def _metric_std(summary: dict, key: str):
+    return _float_or_none(_get_nested(summary, "metric_stats", key, "std"))
+
+
 def _build_summary_row(run_dir: str) -> dict:
     metrics_path = os.path.join(run_dir, "metrics.json")
     heldout_eval_path = os.path.join(run_dir, "heldout_eval.json")
@@ -91,13 +95,21 @@ def _build_summary_row(run_dir: str) -> dict:
         "val_size": _get_nested(metrics, "splits", "val_size"),
         "heldout_size": heldout_eval.get("num_samples", _get_nested(metrics, "splits", "heldout_size")),
         "val_mae": _float_or_none(best_val.get("mae")),
+        "val_mae_std": _metric_std(best_val, "mae"),
         "val_r": _float_or_none(best_val.get("pearson_r")),
+        "val_r_std": _metric_std(best_val, "pearson_r"),
         "val_nonzero_rl2": _float_or_none(best_val.get("nonzero_relative_l2")),
+        "val_nonzero_rl2_std": _metric_std(best_val, "nonzero_relative_l2"),
         "val_rl2": _float_or_none(best_val.get("relative_l2")),
+        "val_rl2_std": _metric_std(best_val, "relative_l2"),
         "heldout_mae": _float_or_none(heldout_summary.get("mae")),
+        "heldout_mae_std": _metric_std(heldout_summary, "mae"),
         "heldout_r": _float_or_none(heldout_summary.get("pearson_r")),
+        "heldout_r_std": _metric_std(heldout_summary, "pearson_r"),
         "heldout_nonzero_rl2": _float_or_none(heldout_summary.get("nonzero_relative_l2")),
+        "heldout_nonzero_rl2_std": _metric_std(heldout_summary, "nonzero_relative_l2"),
         "heldout_rl2": _float_or_none(heldout_summary.get("relative_l2")),
+        "heldout_rl2_std": _metric_std(heldout_summary, "relative_l2"),
         "heldout_inference_time_ms": _float_or_none(heldout_summary.get("inference_time_ms")),
         "final_val_mae": _float_or_none(final_val.get("mae")),
         "final_val_r": _float_or_none(final_val.get("pearson_r")),
@@ -125,6 +137,14 @@ def _format_value(value):
     if isinstance(value, float):
         return f"{value:.6f}"
     return str(value)
+
+
+def _format_pm(mean, std):
+    if mean is None:
+        return ""
+    if std is None:
+        return _format_value(mean)
+    return f"{mean:.6f}+/-{std:.6f}"
 
 
 def _write_json(path: str, rows: list[dict]):
@@ -165,13 +185,13 @@ def _write_markdown(path: str, rows: list[dict]):
                 row.get("task", ""),
                 row.get("model", ""),
                 row.get("best_epoch", ""),
-                _format_value(row.get("val_mae")),
-                _format_value(row.get("val_r")),
-                _format_value(row.get("val_nonzero_rl2")),
-                _format_value(row.get("heldout_mae")),
-                _format_value(row.get("heldout_r")),
-                _format_value(row.get("heldout_nonzero_rl2")),
-                _format_value(row.get("heldout_rl2")),
+                _format_pm(row.get("val_mae"), row.get("val_mae_std")),
+                _format_pm(row.get("val_r"), row.get("val_r_std")),
+                _format_pm(row.get("val_nonzero_rl2"), row.get("val_nonzero_rl2_std")),
+                _format_pm(row.get("heldout_mae"), row.get("heldout_mae_std")),
+                _format_pm(row.get("heldout_r"), row.get("heldout_r_std")),
+                _format_pm(row.get("heldout_nonzero_rl2"), row.get("heldout_nonzero_rl2_std")),
+                _format_pm(row.get("heldout_rl2"), row.get("heldout_rl2_std")),
             ]
             f.write("| " + " | ".join(str(v) for v in values) + " |\n")
 
@@ -179,7 +199,7 @@ def _write_markdown(path: str, rows: list[dict]):
 def parse_args():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     default_root = os.path.abspath(
-        os.path.join(script_dir, "..", "DATAFOLDER", "ExperimentRuns", "forward_exp1_braided_crossed")
+        os.path.join(script_dir, "..", "outputs", "ExperimentRuns", "forward_exp1_braided_crossed")
     )
     parser = argparse.ArgumentParser(description="Summarize forward-modeling experiment results into JSON/CSV/Markdown tables.")
     parser.add_argument("--root", type=str, default=default_root, help="Root directory containing per-run forward experiment outputs.")
@@ -215,13 +235,21 @@ def main():
         "val_size",
         "heldout_size",
         "val_mae",
+        "val_mae_std",
         "val_r",
+        "val_r_std",
         "val_nonzero_rl2",
+        "val_nonzero_rl2_std",
         "val_rl2",
+        "val_rl2_std",
         "heldout_mae",
+        "heldout_mae_std",
         "heldout_r",
+        "heldout_r_std",
         "heldout_nonzero_rl2",
+        "heldout_nonzero_rl2_std",
         "heldout_rl2",
+        "heldout_rl2_std",
         "heldout_inference_time_ms",
         "final_val_mae",
         "final_val_r",

@@ -10,20 +10,21 @@ INCLUDE_TOP_LEVELS=(
 )
 
 CLASSIFICATION_RUN_SPECS=(
-  "gravity|gravity|8"
-  "magnetic|magnetic|8"
-  "mt|mt|4"
-  "seismic|seismic|2"
-  "gravity_magnetic|gravity magnetic|6"
-  "gravity_mt|gravity mt|4"
-  "mt_seismic|mt seismic|2"
-  "all_modalities|gravity magnetic mt seismic|1"
+  "gravity|gravity|16"
+  "magnetic|magnetic|16"
+  "mt|mt|8"
+  "seismic|seismic|4"
+  "gravity_magnetic|gravity magnetic|12"
+  "gravity_mt|gravity mt|8"
+  "mt_seismic|mt seismic|4"
+  "all_modalities|gravity magnetic mt seismic|2"
 )
 
 CLASSIFICATION_EPOCHS="${CLASSIFICATION_EPOCHS:-40}"
 CLASSIFICATION_LR="${CLASSIFICATION_LR:-1e-3}"
 CLASSIFICATION_WEIGHT_DECAY="${CLASSIFICATION_WEIGHT_DECAY:-1e-4}"
-CLASSIFICATION_NUM_WORKERS="${CLASSIFICATION_NUM_WORKERS:-4}"
+CLASSIFICATION_NUM_WORKERS="${CLASSIFICATION_NUM_WORKERS:-12}"
+CLASSIFICATION_PREFETCH_FACTOR="${CLASSIFICATION_PREFETCH_FACTOR:-2}"
 CLASSIFICATION_VAL_FRACTION="${CLASSIFICATION_VAL_FRACTION:-0.1}"
 CLASSIFICATION_SEED="${CLASSIFICATION_SEED:-42}"
 CLASSIFICATION_DEVICE="${CLASSIFICATION_DEVICE:-cuda}"
