@@ -1,99 +1,783 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GEMS-3D</title>
-  <meta name="description" content="GEMS-3D: a 3D geological multiphysics simulation dataset and benchmark.">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <header class="site-header">
-    <a class="brand" href="#">GEMS-3D</a>
-    <nav aria-label="Primary">
-      <a href="#dataset">Dataset</a>
-      <a href="#tasks">Tasks</a>
-      <a href="#code">Code</a>
-      <a href="#citation">Citation</a>
-    </nav>
-  </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f7f8f5" />
+    <title>GEMS-3D · A shared subsurface for multiphysics learning</title>
+    <meta
+      name="description"
+      content="Explore GEMS-3D: 4,920 paired geological models and gravity, magnetic, magnetotelluric, and seismic observations. Open datasets and benchmark code for multiphysics learning."
+    />
+    <link rel="canonical" href="https://bilybill.github.io/GEMS-3D/" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="GEMS-3D · A shared subsurface for multiphysics learning"
+    />
+    <meta
+      property="og:description"
+      content="One geological model. Four physical views. Explore paired 3D subsurface data and open learning benchmarks."
+    />
+    <meta property="og:url" content="https://bilybill.github.io/GEMS-3D/" />
+    <meta
+      property="og:image"
+      content="https://bilybill.github.io/GEMS-3D/assets/3d_anomalies_preview.png"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="styles.css" />
+    <script>
+      document.documentElement.classList.add("js");
+    </script>
+    <script src="site.js" defer></script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": "GEMS-3D",
+        "description": "A synthetic 3D geological multiphysics dataset with aligned property volumes and paired gravity, magnetic, magnetotelluric, and seismic observations.",
+        "url": "https://huggingface.co/datasets/anomy4pub/GEMS-3D",
+        "sameAs": "https://bilybill.github.io/GEMS-3D/",
+        "license": "https://creativecommons.org/licenses/by-nc-sa/4.0/",
+        "keywords": [
+          "geophysics",
+          "3D geology",
+          "multiphysics",
+          "inversion",
+          "machine learning"
+        ],
+        "measurementTechnique": [
+          "gravity",
+          "magnetic",
+          "magnetotelluric",
+          "seismic"
+        ],
+        "isAccessibleForFree": true
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="nav-wrap container">
+        <a class="brand" href="#top" aria-label="GEMS-3D home">
+          <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="m3 10 13-7 13 7-13 7z" />
+            <path d="m3 16 13 7 13-7M3 22l13 7 13-7" />
+          </svg>
+          <span>GEMS<span class="brand-light">–3D</span></span>
+        </a>
+        <button
+          class="menu-toggle"
+          type="button"
+          aria-controls="primary-nav"
+          aria-expanded="false"
+        >
+          <span>Menu</span
+          ><svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M3 6h14M3 14h14" />
+          </svg>
+        </button>
+        <nav class="nav-links" id="primary-nav" aria-label="Primary navigation">
+          <a href="#overview">Overview</a><a href="#explore">Explore</a
+          ><a href="#benchmark">Benchmark</a><a href="#data">Get the data</a>
+          <a class="nav-code" href="https://github.com/Bilybill/GMESDataset"
+            >Code <span aria-hidden="true">↗</span></a
+          >
+        </nav>
+      </div>
+    </header>
 
-  <main>
-    <section class="hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Geological Multiphysics Earth Simulation</p>
-        <h1>GEMS-3D</h1>
-        <p class="lead">
-          A 3D synthetic geoscience benchmark for aligned geological models and gravity, magnetic,
-          magnetotelluric, and seismic forward responses.
+    <main id="main">
+      <section class="hero container" id="top" aria-labelledby="project-title">
+        <p class="eyebrow">
+          <span class="status-dot" aria-hidden="true"></span> Geological
+          multiphysics · Open data &amp; benchmarks
         </p>
-        <div class="actions">
-          <a class="button primary" href="../README.md">Read README</a>
-          <a class="button" href="#code">View Structure</a>
+        <h1 id="project-title">GEMS<span>–3D</span></h1>
+        <p class="hero-title">A shared subsurface.<br />Four physical views.</p>
+        <p class="hero-description">
+          Aligned 3D geology, physical properties, and geophysical
+          observations.<br class="desktop-break" />
+          A common ground for learning across gravity, magnetics, MT, and
+          seismic.
+        </p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#data"
+            ><svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M10 2v10m-4-4 4 4 4-4M3 12v5h14v-5" /></svg
+            >Explore the datasets</a
+          >
+          <a
+            class="button button-secondary"
+            href="https://github.com/Bilybill/GMESDataset"
+            ><svg viewBox="0 0 20 20" aria-hidden="true">
+              <path d="m6 5-5 5 5 5m8-10 5 5-5 5m-3-12-2 14" /></svg
+            >Benchmark code</a
+          >
+          <a class="text-link hero-text-link" href="#explore"
+            >See what’s inside <span aria-hidden="true">↓</span></a
+          >
+        </div>
+        <figure class="teaser">
+          <div class="figure-topline">
+            <span class="figure-label">THE SUBSURFACE, IN CONTEXT</span
+            ><span class="figure-label figure-index"
+              >FIG. 01 / GEOLOGICAL PREVIEW</span
+            >
+          </div>
+          <a
+            class="teaser-image"
+            href="assets/3d_anomalies_preview.png"
+            aria-label="Open the scientific figure at its original size"
+          >
+            <img
+              src="assets/3d_anomalies_preview.png"
+              width="1249"
+              height="624"
+              fetchpriority="high"
+              alt="Scientific visualization of background velocity slices on the left and a geological model with multiple anomaly bodies on the right. Color bars show P-wave velocity in metres per second."
+            />
+          </a>
+          <figcaption>
+            <span
+              ><span class="figure-number">01</span> Background structure</span
+            ><span
+              ><span class="figure-number">02</span> Geological anomaly
+              diversity</span
+            >
+          </figcaption>
+        </figure>
+        <div class="dataset-facts" aria-label="Dataset at a glance">
+          <div>
+            <strong>4,920<span> paired</span></strong
+            ><span>models &amp; observation bundles</span>
+          </div>
+          <div>
+            <strong>4<span> properties</span></strong
+            ><span>velocity · density · resistivity · susceptibility</span>
+          </div>
+          <div>
+            <strong>4<span> modalities</span></strong
+            ><span>gravity · magnetic · MT · seismic</span>
+          </div>
+        </div>
+        <p class="fact-source">
+          Full-release counts from the
+          <a href="https://huggingface.co/datasets/anomy4pub/GEMS-3D"
+            >public dataset card <span aria-hidden="true">↗</span></a
+          >.
+        </p>
+      </section>
+
+      <section
+        class="section section-overview"
+        id="overview"
+        aria-labelledby="overview-title"
+      >
+        <div class="container overview-grid">
+          <div>
+            <p class="eyebrow section-eyebrow">01 / The idea</p>
+            <h2 id="overview-title">
+              Different measurements.<br />The same Earth.
+            </h2>
+          </div>
+          <div class="overview-copy">
+            <p class="large-copy">
+              A subsurface structure can look very different through gravity,
+              magnetic, electrical, and seismic measurements. Studying these
+              views together calls for data that share the same geological
+              context.
+            </p>
+            <p>
+              GEMS-3D pairs three-dimensional property volumes with observations
+              from all four modalities. Spatially aligned properties, anomaly
+              labels, and acquisition metadata connect physical structure to its
+              observed signatures.
+            </p>
+            <p>
+              Use these paired representations to study supervised forward
+              surrogates, joint property reconstruction, anomaly recognition,
+              and robustness to incomplete observations.
+            </p>
+          </div>
+        </div>
+        <div class="container geology-strip">
+          <span class="small-label">Geological diversity</span>
+          <p>
+            Igneous intrusions <span>·</span> Gas &amp; hydrates
+            <span>·</span> Brine faults <span>·</span> Sulfide bodies
+            <span>·</span> Salt domes <span>·</span> Basement interfaces
+            <span>·</span> Serpentinized zones
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="section container"
+        id="explore"
+        aria-labelledby="explore-title"
+      >
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow section-eyebrow">02 / Inside a sample</p>
+            <h2 id="explore-title">Follow the physical connection.</h2>
+          </div>
+          <p>
+            Choose a modality to explore its property volume, observation, and
+            fields in a prepared sample.
+          </p>
+        </div>
+        <div class="explorer" data-active-modality="gravity">
+          <div
+            class="modality-tabs"
+            role="tablist"
+            aria-orientation="vertical"
+            aria-label="Observation modality"
+          >
+            <button
+              id="tab-gravity"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="panel-gravity"
+              data-modality="gravity"
+            >
+              <span class="modality-number">01</span><span>Gravity</span
+              ><span class="modality-symbol" aria-hidden="true">ρ</span>
+            </button>
+            <button
+              id="tab-magnetic"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-magnetic"
+              tabindex="-1"
+              data-modality="magnetic"
+            >
+              <span class="modality-number">02</span><span>Magnetic</span
+              ><span class="modality-symbol" aria-hidden="true">χ</span>
+            </button>
+            <button
+              id="tab-mt"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-mt"
+              tabindex="-1"
+              data-modality="mt"
+            >
+              <span class="modality-number">03</span><span>Magnetotelluric</span
+              ><span class="modality-symbol" aria-hidden="true">Ω</span>
+            </button>
+            <button
+              id="tab-seismic"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-seismic"
+              tabindex="-1"
+              data-modality="seismic"
+            >
+              <span class="modality-number">04</span><span>Seismic</span
+              ><span class="modality-symbol" aria-hidden="true">v</span>
+            </button>
+          </div>
+          <div class="modality-panels">
+            <article
+              id="panel-gravity"
+              class="modality-panel"
+              role="tabpanel"
+              aria-labelledby="tab-gravity"
+              tabindex="0"
+            >
+              <div class="property-flow">
+                <div>
+                  <span class="small-label">3D property</span
+                  ><strong>Density <i>ρ</i></strong
+                  ><span>g/cm³</span>
+                </div>
+                <span class="flow-arrow" aria-hidden="true">⟶</span>
+                <div>
+                  <span class="small-label">Observation</span
+                  ><strong>Gravity anomaly</strong><span>mGal</span>
+                </div>
+              </div>
+              <p>
+                Connect the distribution of subsurface mass to its gravity
+                signature. Pair a density volume with a spatial observation grid
+                for supervised operator learning.
+              </p>
+              <dl class="field-list">
+                <div>
+                  <dt>Property field</dt>
+                  <dd><code>rho_model</code></dd>
+                </div>
+                <div>
+                  <dt>Observation field</dt>
+                  <dd><code>gravity_data</code></dd>
+                </div>
+                <div>
+                  <dt>Representation</dt>
+                  <dd>3D volume → 2D grid</dd>
+                </div>
+              </dl>
+            </article>
+            <article
+              id="panel-magnetic"
+              class="modality-panel"
+              role="tabpanel"
+              aria-labelledby="tab-magnetic"
+              tabindex="0"
+              hidden
+            >
+              <div class="property-flow">
+                <div>
+                  <span class="small-label">3D property</span
+                  ><strong>Susceptibility <i>χ</i></strong
+                  ><span>SI</span>
+                </div>
+                <span class="flow-arrow" aria-hidden="true">⟶</span>
+                <div>
+                  <span class="small-label">Observation</span
+                  ><strong>Magnetic anomaly</strong><span>nT</span>
+                </div>
+              </div>
+              <p>
+                Study how magnetic susceptibility contrasts appear in surface
+                observations. Shared geological context lets magnetic signatures
+                be compared with the other physical views.
+              </p>
+              <dl class="field-list">
+                <div>
+                  <dt>Property field</dt>
+                  <dd><code>chi_model</code></dd>
+                </div>
+                <div>
+                  <dt>Observation field</dt>
+                  <dd><code>magnetic_data</code></dd>
+                </div>
+                <div>
+                  <dt>Representation</dt>
+                  <dd>3D volume → 2D grid</dd>
+                </div>
+              </dl>
+            </article>
+            <article
+              id="panel-mt"
+              class="modality-panel"
+              role="tabpanel"
+              aria-labelledby="tab-mt"
+              tabindex="0"
+              hidden
+            >
+              <div class="property-flow">
+                <div>
+                  <span class="small-label">3D property</span
+                  ><strong>Resistivity</strong><span>Ω·m</span>
+                </div>
+                <span class="flow-arrow" aria-hidden="true">⟶</span>
+                <div>
+                  <span class="small-label">Observation</span
+                  ><strong>MT response</strong
+                  ><span>Apparent resistivity &amp; phase</span>
+                </div>
+              </div>
+              <p>
+                Explore the electrical view through frequency-dependent apparent
+                resistivity and phase. Frequency metadata and polarization
+                channels accompany the prepared observations.
+              </p>
+              <dl class="field-list">
+                <div>
+                  <dt>Property field</dt>
+                  <dd><code>res_model</code></dd>
+                </div>
+                <div>
+                  <dt>Observation fields</dt>
+                  <dd><code>mt_app_res</code> <code>mt_phase</code></dd>
+                </div>
+                <div>
+                  <dt>Frequency axis</dt>
+                  <dd><code>mt_freqs_hz</code></dd>
+                </div>
+              </dl>
+            </article>
+            <article
+              id="panel-seismic"
+              class="modality-panel"
+              role="tabpanel"
+              aria-labelledby="tab-seismic"
+              tabindex="0"
+              hidden
+            >
+              <div class="property-flow">
+                <div>
+                  <span class="small-label">3D property</span
+                  ><strong>P-wave velocity <i>v</i><sub>p</sub></strong
+                  ><span>m/s</span>
+                </div>
+                <span class="flow-arrow" aria-hidden="true">⟶</span>
+                <div>
+                  <span class="small-label">Observation</span
+                  ><strong>Seismic gathers</strong
+                  ><span>Shots × receivers × time</span>
+                </div>
+              </div>
+              <p>
+                Relate velocity structure to time-dependent seismic
+                observations. Source and receiver geometry retain the
+                acquisition context for studying individual shots or joint
+                predictions.
+              </p>
+              <dl class="field-list">
+                <div>
+                  <dt>Property field</dt>
+                  <dd><code>vp_model</code></dd>
+                </div>
+                <div>
+                  <dt>Observation field</dt>
+                  <dd><code>seismic_data</code></dd>
+                </div>
+                <div>
+                  <dt>Acquisition</dt>
+                  <dd>Source &amp; receiver locations</dd>
+                </div>
+              </dl>
+            </article>
+          </div>
+        </div>
+        <div class="section-footnote">
+          <span>One sample, shared spatial context.</span
+          ><a
+            class="text-link"
+            href="https://github.com/Bilybill/GMESDataset/blob/main/README_FORWARD_OUTPUTS.md"
+            >Read the bundle schema <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <noscript
+          ><p class="no-script-note">
+            All four modalities are available in the
+            <a
+              href="https://github.com/Bilybill/GMESDataset/blob/main/README_FORWARD_OUTPUTS.md"
+              >bundle schema</a
+            >. Enable JavaScript to explore the tabs.
+          </p></noscript
+        >
+      </section>
+
+      <section
+        class="section benchmark-section"
+        id="benchmark"
+        aria-labelledby="benchmark-title"
+      >
+        <div class="container">
+          <div class="section-heading">
+            <div>
+              <p class="eyebrow section-eyebrow">03 / Research directions</p>
+              <h2 id="benchmark-title">A benchmark with more than one view.</h2>
+            </div>
+            <p>
+              Use a common dataset to ask how physical information is learned,
+              combined, and recovered.
+            </p>
+          </div>
+          <div class="research-row">
+            <span class="research-number">I.</span>
+            <div>
+              <h3>Learn the forward map</h3>
+              <p>
+                Predict geophysical observations from their corresponding
+                property volumes, or learn all four mappings jointly.
+              </p>
+            </div>
+            <div class="research-detail">
+              <p class="task-equation">
+                Physical properties
+                <span aria-hidden="true">→</span> Observations
+              </p>
+              <a
+                class="text-link"
+                href="https://github.com/Bilybill/GMESDataset/blob/main/experiments/train_forward_surrogate.py"
+                >Forward surrogate benchmarks
+                <span aria-hidden="true">↗</span></a
+              >
+            </div>
+          </div>
+          <div class="research-row">
+            <span class="research-number">II.</span>
+            <div>
+              <h3>Recover the subsurface</h3>
+              <p>
+                Reconstruct aligned property volumes from multiple observations,
+                or recognize the underlying anomaly family.
+              </p>
+            </div>
+            <div class="research-detail">
+              <p class="task-equation">
+                Observations <span aria-hidden="true">→</span> Subsurface
+                properties
+              </p>
+              <a
+                class="text-link"
+                href="https://github.com/Bilybill/GMESDataset/blob/main/experiments/train_joint_inversion.py"
+                >Joint inversion baseline <span aria-hidden="true">↗</span></a
+              >
+            </div>
+          </div>
+          <div class="research-row">
+            <span class="research-number">III.</span>
+            <div>
+              <h3>Test what each view contributes</h3>
+              <p>
+                Evaluate missing modalities and shuffled cross-modal pairings to
+                examine robustness and the contribution of aligned information.
+              </p>
+            </div>
+            <div class="research-detail">
+              <p class="task-equation">
+                Complete views <span aria-hidden="true">↔</span> Incomplete
+                views
+              </p>
+              <a
+                class="text-link"
+                href="https://github.com/Bilybill/GMESDataset/blob/main/experiments/eval_missing_modalities.py"
+                >Robustness evaluation <span aria-hidden="true">↗</span></a
+              >
+            </div>
+          </div>
+          <p class="protocol-note">
+            <span class="protocol-icon" aria-hidden="true">↳</span> Benchmark
+            validation groups samples by background model to avoid overlap
+            between training and validation backgrounds.
+          </p>
+        </div>
+      </section>
+
+      <section class="section container" id="data" aria-labelledby="data-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow section-eyebrow">04 / Open datasets</p>
+            <h2 id="data-title">Start small. Explore further.</h2>
+          </div>
+          <p>
+            Three release sizes, the same paired structure. Each example links a
+            model bundle with an observation bundle.
+          </p>
+        </div>
+        <div class="release-grid">
+          <article class="release release-tiny">
+            <div class="release-top">
+              <span class="small-label">Tiny</span
+              ><span class="release-tag">Start here</span>
+            </div>
+            <h3>16<span>paired samples</span></h3>
+            <p class="release-description">
+              Inspect the format and build your first data-loading workflow.
+            </p>
+            <dl>
+              <div>
+                <dt>Training / test</dt>
+                <dd>15 / 1</dd>
+              </div>
+              <div>
+                <dt>Payload</dt>
+                <dd>19.61 GiB</dd>
+              </div>
+            </dl>
+            <a
+              class="release-link"
+              href="https://huggingface.co/datasets/anomy4pub/GEMS-3D-Tiny"
+              >Open Tiny on Hugging Face <span aria-hidden="true">↗</span></a
+            >
+          </article>
+          <article class="release">
+            <div class="release-top">
+              <span class="small-label">Standard</span
+              ><span class="release-tag release-tag-muted"
+                >Stratified subset</span
+              >
+            </div>
+            <h3>513<span>paired samples</span></h3>
+            <p class="release-description">
+              A subset for developing experiments before scaling to the full
+              release.
+            </p>
+            <dl>
+              <div>
+                <dt>Training / test</dt>
+                <dd>500 / 13</dd>
+              </div>
+              <div>
+                <dt>Contents</dt>
+                <dd>Models + observations</dd>
+              </div>
+            </dl>
+            <a
+              class="release-link"
+              href="https://huggingface.co/datasets/anomy4pub/GEMS-3D-Standard"
+              >Open Standard on Hugging Face
+              <span aria-hidden="true">↗</span></a
+            >
+          </article>
+          <article class="release">
+            <div class="release-top">
+              <span class="small-label">Full</span
+              ><span class="release-tag release-tag-muted">Full release</span>
+            </div>
+            <h3>4,920<span>paired samples</span></h3>
+            <p class="release-description">
+              The full paired release for larger-scale multiphysics experiments.
+            </p>
+            <dl>
+              <div>
+                <dt>Training / test</dt>
+                <dd>4,800 / 120</dd>
+              </div>
+              <div>
+                <dt>Payload</dt>
+                <dd>6,031.40 GiB</dd>
+              </div>
+            </dl>
+            <a
+              class="release-link"
+              href="https://huggingface.co/datasets/anomy4pub/GEMS-3D"
+              >Open Full on Hugging Face <span aria-hidden="true">↗</span></a
+            >
+          </article>
+        </div>
+        <p class="release-note">
+          Counts and sizes follow the linked release cards. Review each card’s
+          metadata, manifests, and license before use. Even Tiny contains
+          approximately 20 GiB of data.
+        </p>
+      </section>
+
+      <section
+        class="section resource-section"
+        id="resources"
+        aria-labelledby="resource-title"
+      >
+        <div class="container resource-grid">
+          <div>
+            <p class="eyebrow section-eyebrow">05 / Get started</p>
+            <h2 id="resource-title">
+              From a prepared sample<br />to your next experiment.
+            </h2>
+            <p>
+              Download the data, inspect a bundle, and build on the open
+              benchmark loaders and models.
+            </p>
+            <div class="resource-links">
+              <a href="https://github.com/Bilybill/GMESDataset"
+                >Public benchmark code <span aria-hidden="true">↗</span></a
+              ><a
+                href="https://github.com/Bilybill/GMESDataset/blob/main/README.md"
+                >Setup &amp; usage guide <span aria-hidden="true">↗</span></a
+              ><a
+                href="https://github.com/Bilybill/GMESDataset/blob/main/experiments/launchers/README.md"
+                >Training &amp; evaluation suites
+                <span aria-hidden="true">↗</span></a
+              >
+            </div>
+          </div>
+          <div class="code-example">
+            <div class="code-header">
+              <span>Read an existing model bundle</span
+              ><button
+                type="button"
+                class="copy-button"
+                data-copy="sample-code"
+                aria-label="Copy Python loading example"
+              >
+                Copy <span aria-hidden="true">⧉</span>
+              </button>
+            </div>
+            <pre><code id="sample-code"><span class="code-keyword">import</span> numpy <span class="code-keyword">as</span> np
+
+<span class="code-comment"># Use a trusted, downloaded dataset sample.</span>
+<span class="code-keyword">with</span> np.load(<span class="code-string">"path/to/model_bundle.npz"</span>,
+             allow_pickle=<span class="code-keyword">True</span>) <span class="code-keyword">as</span> sample:
+    vp = sample[<span class="code-string">"vp_model"</span>]
+    rho = sample[<span class="code-string">"rho_model"</span>]
+    res = sample[<span class="code-string">"res_model"</span>]
+    chi = sample[<span class="code-string">"chi_model"</span>]
+
+    <span class="code-keyword">print</span>(vp.shape, rho.shape)</code></pre>
+            <p class="code-caption">
+              Aligned volumes. A shared sample. Four physical properties.
+            </p>
+          </div>
+          <p class="release-boundary">
+            The public benchmark release uses prepared data. Geological model
+            generation and the numerical forward solvers are maintained
+            separately.
+          </p>
+        </div>
+      </section>
+
+      <section
+        class="section container citation-section"
+        id="citation"
+        aria-labelledby="citation-title"
+      >
+        <div>
+          <p class="eyebrow section-eyebrow">06 / Reference</p>
+          <h2 id="citation-title">Building on GEMS-3D?</h2>
+          <p>
+            Reference the public dataset release when using the data. This
+            resource entry points to the dataset card; consult the card for
+            bibliographic updates.
+          </p>
+          <a
+            class="text-link"
+            href="https://huggingface.co/datasets/anomy4pub/GEMS-3D"
+            >Dataset card &amp; release metadata
+            <span aria-hidden="true">↗</span></a
+          >
+        </div>
+        <div class="citation-code">
+          <div class="code-header">
+            <span>Dataset resource · BibTeX</span
+            ><button
+              type="button"
+              class="copy-button"
+              data-copy="bibtex"
+              aria-label="Copy dataset BibTeX"
+            >
+              Copy <span aria-hidden="true">⧉</span>
+            </button>
+          </div>
+          <pre><code id="bibtex">@misc{gems3d_dataset,
+  title = {GEMS-3D: Geological Multiphysics
+           Earth Simulation in 3D},
+  howpublished = {Hugging Face dataset},
+  url = {https://huggingface.co/datasets/anomy4pub/GEMS-3D}
+}</code></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <a class="brand" href="#top"
+          >GEMS<span class="brand-light">–3D</span></a
+        >
+        <p>Geological Multiphysics Earth Simulation in 3D</p>
+        <div>
+          <a href="https://github.com/Bilybill/GMESDataset"
+            >Code <span aria-hidden="true">↗</span></a
+          ><a href="#data">Data <span aria-hidden="true">↑</span></a
+          ><a href="#citation">Reference</a>
         </div>
       </div>
-      <figure class="hero-media">
-        <img src="assets/3d_anomalies_preview.png" alt="Preview of GEMS-3D geological anomaly volumes">
-      </figure>
-    </section>
-
-    <section id="dataset" class="band">
-      <div class="section-head">
-        <p class="eyebrow">Dataset</p>
-        <h2>Aligned 3D models and four forward modalities</h2>
-      </div>
-      <div class="feature-grid">
-        <article>
-          <h3>Property Volumes</h3>
-          <p>Each generated sample stores aligned `vp`, `rho`, `res`, and `chi` volumes with anomaly labels and source metadata.</p>
-        </article>
-        <article>
-          <h3>Geological Targets</h3>
-          <p>Registry presets cover igneous intrusions, salt domes, brine faults, sulfides, hydrates, gas systems, basement interfaces, and alteration zones.</p>
-        </article>
-        <article>
-          <h3>Forward Bundles</h3>
-          <p>Responses are packed into `forward_bundle.npz` with observation geometry, frequency axes, acquisition settings, and method status fields.</p>
-        </article>
-      </div>
-    </section>
-
-    <section id="tasks" class="band muted">
-      <div class="section-head">
-        <p class="eyebrow">Benchmark</p>
-        <h2>Forward, inverse, and robustness tasks</h2>
-      </div>
-      <div class="task-list">
-        <div><strong>Forward surrogates</strong><span>`rho -> gravity`, `chi -> magnetic`, `res -> MT`, `vp -> seismic`, and joint multimodal prediction.</span></div>
-        <div><strong>Inverse interpretation</strong><span>Anomaly-family classification with single-modality and multimodal baselines.</span></div>
-        <div><strong>Robustness</strong><span>Missing-modality evaluation and modality-shuffled consistency controls.</span></div>
-      </div>
-    </section>
-
-    <section id="code" class="band">
-      <div class="section-head">
-        <p class="eyebrow">Code</p>
-        <h2>Public release structure</h2>
-      </div>
-      <pre><code>core/                         anomaly registry and multiphysics builders
-Gravity/ Magnetic/ Electrical/ Seismic/
-                              forward-modeling implementations
-experiments/                  benchmark datasets, models, training, evaluation
-configs/                      anomaly and randomization presets
-docs/                         project homepage</code></pre>
-    </section>
-
-    <section id="citation" class="band muted">
-      <div class="section-head">
-        <p class="eyebrow">Citation</p>
-        <h2>Dataset paper citation placeholder</h2>
-      </div>
-      <pre><code>@misc{gems3d2026,
-  title = {GEMS-3D: Geological Multiphysics Earth Simulation in 3D},
-  author = {GEMS-3D Contributors},
-  year = {2026}
-}</code></pre>
-    </section>
-  </main>
-</body>
+    </footer>
+    <div
+      class="toast"
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+    ></div>
+  </body>
 </html>
