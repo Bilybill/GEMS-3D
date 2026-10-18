@@ -41,3 +41,28 @@ metadata, and the external resource links. Respect reduced-motion preferences.
 
 Publish only the intended `docs/` changes. Keep unrelated research edits out of
 the website commit, and preserve the existing GitHub Pages publishing source.
+
+## Manuscript figures and desktop inspection
+
+The research-figure section includes three original figure assets supplied with
+the NeurIPS manuscript, with figure-specific captions:
+
+| Website asset                | Manuscript source        | Content                                              |
+| ---------------------------- | ------------------------ | ---------------------------------------------------- |
+| `paper/aligned-samples.pdf`  | `Fig_family_gallery.pdf` | Nine families, aligned properties and observations   |
+| `paper/dataset-coverage.pdf` | `Fig2.pdf`               | Family/background coverage and property fingerprints |
+| `paper/joint-inversion.pdf`  | `jointInvArch.pdf`       | Joint-inversion baseline architecture                |
+
+PDFs are preserved unchanged. Lossless WebP derivatives retain the entire figure,
+including original labels, without cropping, recoloring, or redrawing data.
+The page uses 1200-pixel previews; 3000-pixel figures load when the image viewer
+opens. The complete manuscript and model-generation implementation are not part
+of these website assets.
+
+The native dialog supports fit-to-window, original pixel size, zoom buttons,
+plus/minus keys, Escape, and focus restoration. Modified link clicks still open
+the image directly. Section navigation indicates the current reading location;
+the reading-progress indicator and return-to-top link update on scrolling.
+
+The CSS and JavaScript URLs include a release query version. Bump it when
+changing those assets so returning visitors receive a coherent new version.
