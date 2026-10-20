@@ -47,11 +47,11 @@ the website commit, and preserve the existing GitHub Pages publishing source.
 The research-figure section includes three original figure assets supplied with
 the NeurIPS manuscript, with figure-specific captions:
 
-| Website asset                | Manuscript source        | Content                                              |
-| ---------------------------- | ------------------------ | ---------------------------------------------------- |
-| `paper/aligned-samples.pdf`  | `Fig_family_gallery.pdf` | Nine families, aligned properties and observations   |
-| `paper/dataset-coverage.pdf` | `Fig2.pdf`               | Family/background coverage and property fingerprints |
-| `paper/joint-inversion.pdf`  | `jointInvArch.pdf`       | Joint-inversion baseline architecture                |
+| Website asset                | Manuscript source        | Content                                                     |
+| ---------------------------- | ------------------------ | ----------------------------------------------------------- |
+| `paper/aligned-samples.pdf`  | `Fig_family_gallery.pdf` | Nine families, aligned properties and observations          |
+| `paper/dataset-coverage.pdf` | `Fig2.pdf`               | Family/background coverage and property fingerprints        |
+| `paper/dataset-pipeline.pdf` | `Fig1.pdf`               | Geology, aligned properties, and four-modality observations |
 
 PDFs are preserved unchanged. Lossless WebP derivatives retain the entire figure,
 including original labels, without cropping, recoloring, or redrawing data.

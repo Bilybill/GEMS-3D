@@ -268,14 +268,14 @@
                   <span class="tab-index">02</span>Dataset coverage</button
                 ><button
                   type="button"
-                  id="figure-tab-inversion"
+                  id="figure-tab-pipeline"
                   role="tab"
-                  aria-controls="figure-panel-inversion"
+                  aria-controls="figure-panel-pipeline"
                   aria-selected="false"
                   tabindex="-1"
-                  data-figure-tab="inversion"
+                  data-figure-tab="pipeline"
                 >
-                  <span class="tab-index">03</span>Joint inversion
+                  <span class="tab-index">03</span>Pipeline
                 </button>
               </div>
               <span class="paper-hint"
@@ -389,32 +389,32 @@
               </figcaption>
             </figure>
             <figure
-              id="figure-panel-inversion"
+              aria-labelledby="figure-tab-pipeline"
               class="paper-panel"
+              hidden=""
+              id="figure-panel-pipeline"
               role="tabpanel"
               tabindex="0"
-              aria-labelledby="figure-tab-inversion"
-              hidden
             >
               <a
+                aria-label="Enlarge figure: dataset pipeline"
                 class="figure-open"
-                href="assets/paper/joint-inversion-large.webp"
-                data-lightbox
-                data-title="Joint inversion"
-                data-caption="The manuscript’s joint-inversion baseline architecture connects modality-specific encoders, a fusion representation, and a decoder for four aligned three-dimensional property volumes."
-                aria-label="Enlarge figure: joint inversion"
+                data-caption="The manuscript’s dataset pipeline connects geological conditions to aligned velocity, density, resistivity, and susceptibility volumes, then to gravity, magnetic, magnetotelluric, and seismic observations in a unified data package for downstream benchmarks."
+                data-lightbox=""
+                data-title="Dataset pipeline"
+                href="assets/paper/dataset-pipeline-large.webp"
               >
                 <img
-                  src="assets/paper/joint-inversion.webp"
-                  alt="Joint inversion architecture showing gravity, MT, magnetic, and seismic encoders, fusion with modality indicators, and decoders that recover velocity, density, resistivity, and susceptibility."
-                  loading="lazy"
+                  alt="GEMS-3D dataset pipeline showing geological conditions, a facies-aware property builder, four aligned property volumes, gravity, electrical, magnetic, and seismic forward responses, and a unified package for learning benchmarks."
                   decoding="async"
+                  height="616"
+                  loading="lazy"
+                  src="assets/paper/dataset-pipeline.webp"
                   width="1200"
-                  height="444"
                 />
                 <span class="figure-enlarge"
-                  ><svg viewBox="0 0 20 20" aria-hidden="true">
-                    <path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4" />
+                  ><svg aria-hidden="true" viewBox="0 0 20 20">
+                    <path d="M7 3H3v4m10-4h4v4M3 13v4h4m10-4v4h-4"></path>
                   </svg>
                   Enlarge figure</span
                 ></a
@@ -422,21 +422,21 @@
               <figcaption>
                 <div>
                   <h3>
-                    From four physical observations to a shared subsurface
-                    state.
+                    From geological conditions to aligned multiphysics data.
                   </h3>
                   <p>
-                    The manuscript’s joint-inversion baseline architecture
-                    connects modality-specific encoders, a fusion
-                    representation, and a decoder for four aligned
-                    three-dimensional property volumes.
+                    The manuscript’s dataset pipeline connects geological
+                    conditions to aligned velocity, density, resistivity, and
+                    susceptibility volumes, then to gravity, magnetic,
+                    magnetotelluric, and seismic observations in a unified data
+                    package for downstream benchmarks.
                   </p>
                 </div>
                 <a
                   class="text-link"
-                  href="assets/paper/joint-inversion.pdf"
-                  target="_blank"
+                  href="assets/paper/dataset-pipeline.pdf"
                   rel="noopener"
+                  target="_blank"
                   >Original PDF <span aria-hidden="true">↗</span></a
                 >
               </figcaption>
@@ -924,7 +924,9 @@
                 Copy <span aria-hidden="true">⧉</span>
               </button>
             </div>
-            <pre><code id="sample-code"><span class="code-keyword">import</span> numpy <span class="code-keyword">as</span> np
+            <pre
+              tabindex="0"
+            ><code id="sample-code"><span class="code-keyword">import</span> numpy <span class="code-keyword">as</span> np
 
 <span class="code-comment"># Use a trusted, downloaded dataset sample.</span>
 <span class="code-keyword">with</span> np.load(<span class="code-string">"path/to/model_bundle.npz"</span>,
@@ -979,7 +981,7 @@
               Copy <span aria-hidden="true">⧉</span>
             </button>
           </div>
-          <pre><code id="bibtex">@misc{gems3d_dataset,
+          <pre tabindex="0"><code id="bibtex">@misc{gems3d_dataset,
   title = {GEMS-3D: Geological Multiphysics
            Earth Simulation in 3D},
   howpublished = {Hugging Face dataset},
