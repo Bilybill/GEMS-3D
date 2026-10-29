@@ -33,6 +33,12 @@ This design makes it easier to keep the geological model and all forward respons
 - `mt_res_model`: downsampled MT resistivity model actually used for MT forward modeling
 - `mt_dx`, `mt_dy`, `mt_dz`: MT grid spacing after downsampling
 - `mt_freqs_hz`: frequency list when available
+- `mt_boundary_mode`: effective MT boundary mode (`explicit_air` or `legacy`)
+- `mt_air_layers`: effective number of explicit air layers (`0` for `legacy`)
+- `mt_air_resistivity_ohm_m`: configured air resistivity
+- `mt_solver_tolerance`: effective relative solver tolerance
+- `mt_solver_max_iterations`: effective BiCGStab iteration limit per polarization
+- `mt_frequency_continuation`: whether lower frequencies reuse a previous solution
 - `mt_error`: present only if MT failed
 
 ### 4. Gravity forward outputs

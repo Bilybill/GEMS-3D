@@ -31,6 +31,34 @@ from Electrical.forward_modeling.mt_forward import generate_mt_frequencies
 
 DENSITY_UNIT = "g/cm^3"
 SEISMIC_PRESETS = ("full", "light")
+MT_BOUNDARY_MODES = ("legacy", "explicit_air")
+
+
+def _positive_finite_float_arg(value):
+    try:
+        normalized = float(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("must be a number") from exc
+    if not np.isfinite(normalized) or normalized <= 0.0:
+        raise argparse.ArgumentTypeError("must be positive and finite")
+    return normalized
+
+
+def _positive_int_arg(value):
+    try:
+        normalized = int(value)
+    except (TypeError, ValueError) as exc:
+        raise argparse.ArgumentTypeError("must be an integer") from exc
+    if normalized <= 0:
+        raise argparse.ArgumentTypeError("must be positive")
+    return normalized
+
+
+def _padding_growth_arg(value):
+    normalized = _positive_finite_float_arg(value)
+    if normalized <= 1.0:
+        raise argparse.ArgumentTypeError("must be finite and greater than 1.0")
+    return normalized
 
 def _normalize_density_value_for_pipeline(value):
     value = float(value)
@@ -593,7 +621,33 @@ def save_model_bundle(model, save_dir, gravity_algorithm="prism_exact", seismic_
     return bundle_path
 
 
-def run_forward_pipeline_from_model(save_dir, model, run_gravity=True, run_magnetic=True, run_electrical=True, run_seismic=True, gravity_anomaly_mode="background", gravity_bg_density=2.67, gravity_algorithm="prism_exact", torch_device_preference="auto", seismic_preset="full", seismic_batch_size=0, mt_freq_min=None, mt_freq_max=None, seismic_freq_min=None, seismic_freq_max=None, save_previews=True):
+def run_forward_pipeline_from_model(
+    save_dir,
+    model,
+    run_gravity=True,
+    run_magnetic=True,
+    run_electrical=True,
+    run_seismic=True,
+    gravity_anomaly_mode="background",
+    gravity_bg_density=2.67,
+    gravity_algorithm="prism_exact",
+    torch_device_preference="auto",
+    seismic_preset="full",
+    seismic_batch_size=0,
+    mt_freq_min=None,
+    mt_freq_max=None,
+    seismic_freq_min=None,
+    seismic_freq_max=None,
+    save_previews=True,
+    mt_boundary_mode="explicit_air",
+    mt_air_layers=8,
+    mt_air_resistivity=1.0e8,
+    mt_solver_tolerance=None,
+    mt_solver_max_iterations=50000,
+    mt_frequency_continuation=None,
+    mt_padding_layers=10,
+    mt_padding_growth=1.4,
+):
     os.makedirs(save_dir, exist_ok=True)
     gravity_bg_density = _normalize_density_value_for_pipeline(gravity_bg_density)
     vp_multi = model["vp"]
@@ -664,7 +718,52 @@ def run_forward_pipeline_from_model(save_dir, model, run_gravity=True, run_magne
             )
             print(f"  --> MT frequencies: {mt_freqs}")
 
-        mt_solver = ElectricalForwardSolver(mt_freqs, mt_dx, mt_dy, mt_dz)
+        mt_solver = ElectricalForwardSolver(
+            mt_freqs,
+            mt_dx,
+            mt_dy,
+            mt_dz,
+            boundary_mode=mt_boundary_mode,
+            air_layers=mt_air_layers,
+            air_resistivity=mt_air_resistivity,
+            solver_tolerance=mt_solver_tolerance,
+            solver_max_iterations=mt_solver_max_iterations,
+            frequency_continuation=mt_frequency_continuation,
+            padding_layers=mt_padding_layers,
+            padding_growth=mt_padding_growth,
+        )
+        mt_settings = mt_solver.settings
+        bundle["mt_boundary_mode"] = np.array(mt_settings["boundary_mode"])
+        bundle["mt_air_layers"] = np.array(mt_settings["air_layers"], dtype=np.int32)
+        bundle["mt_air_resistivity_ohm_m"] = np.array(
+            mt_settings["air_resistivity"], dtype=np.float64
+        )
+        bundle["mt_solver_tolerance"] = np.array(
+            mt_settings["solver_tolerance"], dtype=np.float64
+        )
+        bundle["mt_solver_max_iterations"] = np.array(
+            mt_settings["solver_max_iterations"], dtype=np.int32
+        )
+        bundle["mt_frequency_continuation"] = np.array(
+            mt_settings["frequency_continuation"], dtype=np.bool_
+        )
+        bundle["mt_padding_layers"] = np.array(
+            mt_settings["padding_layers"], dtype=np.int32
+        )
+        bundle["mt_padding_growth"] = np.array(
+            mt_settings["padding_growth"], dtype=np.float64
+        )
+        print(
+            "MT solver settings: "
+            f"boundary={mt_settings['boundary_mode']}, "
+            f"air_layers={mt_settings['air_layers']}, "
+            f"air_rho={mt_settings['air_resistivity']:.3e} Ohm-m, "
+            f"tolerance={mt_settings['solver_tolerance']:.1e}, "
+            f"max_iterations={mt_settings['solver_max_iterations']}, "
+            f"continuation={mt_settings['frequency_continuation']}, "
+            f"padding_layers={mt_settings['padding_layers']}, "
+            f"padding_growth={mt_settings['padding_growth']:.3g}"
+        )
         t0 = time.time()
         print(f'res down device type: {res_down.device}, dtype: {res_down.dtype}, shape = {res_down.shape}')
         try:
@@ -905,7 +1004,36 @@ def run_forward_pipeline_from_model(save_dir, model, run_gravity=True, run_magne
     return bundle_path
 
 
-def run_forward_pipeline(save_dir, vp_segy_path, label_segy_path, run_gravity=True, run_magnetic=True, run_electrical=True, run_seismic=True, gravity_anomaly_mode="background", gravity_bg_density=2.67, gravity_algorithm="prism_exact", torch_device_preference="auto", anomaly_type="igneous_swarm", seismic_preset="full", seismic_batch_size=0, mt_freq_min=None, mt_freq_max=None, seismic_freq_min=None, seismic_freq_max=None, save_previews=True, anomaly_random_config=None):
+def run_forward_pipeline(
+    save_dir,
+    vp_segy_path,
+    label_segy_path,
+    run_gravity=True,
+    run_magnetic=True,
+    run_electrical=True,
+    run_seismic=True,
+    gravity_anomaly_mode="background",
+    gravity_bg_density=2.67,
+    gravity_algorithm="prism_exact",
+    torch_device_preference="auto",
+    anomaly_type="igneous_swarm",
+    seismic_preset="full",
+    seismic_batch_size=0,
+    mt_freq_min=None,
+    mt_freq_max=None,
+    seismic_freq_min=None,
+    seismic_freq_max=None,
+    save_previews=True,
+    anomaly_random_config=None,
+    mt_boundary_mode="explicit_air",
+    mt_air_layers=8,
+    mt_air_resistivity=1.0e8,
+    mt_solver_tolerance=None,
+    mt_solver_max_iterations=50000,
+    mt_frequency_continuation=None,
+    mt_padding_layers=10,
+    mt_padding_growth=1.4,
+):
     print("====== 1. 模型生成 ======")
     gravity_bg_density = _normalize_density_value_for_pipeline(gravity_bg_density)
     model = generate_model(vp_segy_path, label_segy_path, anomaly_type=anomaly_type, anomaly_random_config=anomaly_random_config)
@@ -927,6 +1055,14 @@ def run_forward_pipeline(save_dir, vp_segy_path, label_segy_path, run_gravity=Tr
         seismic_freq_min=seismic_freq_min,
         seismic_freq_max=seismic_freq_max,
         save_previews=save_previews,
+        mt_boundary_mode=mt_boundary_mode,
+        mt_air_layers=mt_air_layers,
+        mt_air_resistivity=mt_air_resistivity,
+        mt_solver_tolerance=mt_solver_tolerance,
+        mt_solver_max_iterations=mt_solver_max_iterations,
+        mt_frequency_continuation=mt_frequency_continuation,
+        mt_padding_layers=mt_padding_layers,
+        mt_padding_growth=mt_padding_growth,
     )
 
 if __name__ == '__main__':
@@ -939,6 +1075,17 @@ if __name__ == '__main__':
     parser.add_argument("--anomaly-type", dest="anomaly_type", type=str, default="igneous_swarm", choices=FORWARD_ANOMALY_TYPES, help="Anomaly to inject for forward modeling.")
     parser.add_argument("--mt-freq-min", dest="mt_freq_min", type=float, default=None, help="Minimum MT frequency in Hz. Must be used together with --mt-freq-max.")
     parser.add_argument("--mt-freq-max", dest="mt_freq_max", type=float, default=None, help="Maximum MT frequency in Hz. Must be used together with --mt-freq-min.")
+    parser.add_argument("--mt-boundary-mode", dest="mt_boundary_mode", choices=MT_BOUNDARY_MODES, default="explicit_air", help="MT boundary formulation used by the multiphysics pipeline.")
+    parser.add_argument("--mt-air-layers", dest="mt_air_layers", type=_positive_int_arg, default=8, help="Number of explicit air cells for MT.")
+    parser.add_argument("--mt-air-resistivity", dest="mt_air_resistivity", type=_positive_finite_float_arg, default=1.0e8, help="Air resistivity in Ohm-m for explicit-air MT.")
+    parser.add_argument("--mt-solver-tolerance", dest="mt_solver_tolerance", type=_positive_finite_float_arg, default=None, help="MT relative solver tolerance. Defaults to the selected boundary mode's value.")
+    parser.add_argument("--mt-solver-max-iterations", dest="mt_solver_max_iterations", type=_positive_int_arg, default=50000, help="Maximum MT BiCGStab iterations per polarization.")
+    parser.add_argument("--mt-padding-layers", dest="mt_padding_layers", type=_positive_int_arg, default=10, help="Number of expanding MT padding cells on each lateral side and below the model.")
+    parser.add_argument("--mt-padding-growth", dest="mt_padding_growth", type=_padding_growth_arg, default=1.4, help="Geometric growth factor for MT padding cells; must be greater than 1.")
+    mt_continuation_group = parser.add_mutually_exclusive_group()
+    mt_continuation_group.add_argument("--mt-frequency-continuation", dest="mt_frequency_continuation", action="store_true", help="Warm-start lower MT frequencies from the preceding solve.")
+    mt_continuation_group.add_argument("--no-mt-frequency-continuation", dest="mt_frequency_continuation", action="store_false", help="Cold-start each MT frequency independently.")
+    parser.set_defaults(mt_frequency_continuation=None)
     parser.add_argument("--seismic-freq-min", dest="seismic_freq_min", type=float, default=None, help="Minimum seismic source dominant frequency in Hz. Must be used together with --seismic-freq-max.")
     parser.add_argument("--seismic-freq-max", dest="seismic_freq_max", type=float, default=None, help="Maximum seismic source dominant frequency in Hz. Must be used together with --seismic-freq-min.")
     parser.add_argument("--seismic-preset", dest="seismic_preset", type=str, default="full", choices=SEISMIC_PRESETS, help="3D seismic acquisition size preset.")
@@ -970,4 +1117,12 @@ if __name__ == '__main__':
         seismic_freq_min=args.seismic_freq_min,
         seismic_freq_max=args.seismic_freq_max,
         anomaly_random_config=anomaly_random_config,
+        mt_boundary_mode=args.mt_boundary_mode,
+        mt_air_layers=args.mt_air_layers,
+        mt_air_resistivity=args.mt_air_resistivity,
+        mt_solver_tolerance=args.mt_solver_tolerance,
+        mt_solver_max_iterations=args.mt_solver_max_iterations,
+        mt_frequency_continuation=args.mt_frequency_continuation,
+        mt_padding_layers=args.mt_padding_layers,
+        mt_padding_growth=args.mt_padding_growth,
     )

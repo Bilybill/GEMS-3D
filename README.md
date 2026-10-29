@@ -76,8 +76,16 @@ python run_multiphysics_forward.py \
   --label_segy data/examples/label.sgy \
   --save_dir outputs/ForwardOutput \
   --anomaly-type massive_sulfide \
-  --seismic-preset light
+  --seismic-preset light \
+  --mt-boundary-mode explicit_air \
+  --mt-air-layers 8
 ```
+
+The multiphysics pipeline defaults to `explicit_air` for MT. Use
+`--mt-boundary-mode legacy` to preserve the direct `MTForward3D` earth-surface
+formulation, and override `--mt-solver-tolerance`,
+`--mt-solver-max-iterations`, or `--no-mt-frequency-continuation` when running
+solver benchmarks.
 
 For previously generated model bundles:
 

@@ -80,11 +80,38 @@ __global__ void computeBoundaryValuesKernel(
         return;
     }
 
-    double z = zCoords[boundaryEdgeZIndices[idx]];
+    double z = fmax(0.0, zCoords[boundaryEdgeZIndices[idx]]);
     double realPart = cuCimag(k_num) * z;
     double imagPart = -cuCreal(k_num) * z;
     double amp = exp(realPart);
     bcValues[idx] = make_cuDoubleComplex(amp * cos(imagPart), amp * sin(imagPart));
+}
+
+__global__ void computeBoundaryValuesDualKernel(
+    int nBoundaryEdges,
+    const int* boundaryEdgeFamilies,
+    const int* boundaryEdgeZIndices,
+    const double* zCoords,
+    cuDoubleComplex k_num,
+    cuDoubleComplex* bcValuesPol1,
+    cuDoubleComplex* bcValuesPol2)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= nBoundaryEdges) {
+        return;
+    }
+
+    int family = boundaryEdgeFamilies[idx];
+    cuDoubleComplex value = make_cuDoubleComplex(0.0, 0.0);
+    if (family == 0 || family == 1) {
+        double z = fmax(0.0, zCoords[boundaryEdgeZIndices[idx]]);
+        double realPart = cuCimag(k_num) * z;
+        double imagPart = -cuCreal(k_num) * z;
+        double amp = exp(realPart);
+        value = make_cuDoubleComplex(amp * cos(imagPart), amp * sin(imagPart));
+    }
+    bcValuesPol1[idx] = family == 0 ? value : make_cuDoubleComplex(0.0, 0.0);
+    bcValuesPol2[idx] = family == 1 ? value : make_cuDoubleComplex(0.0, 0.0);
 }
 
 __global__ void applyBoundaryCouplingsKernel(
@@ -105,6 +132,33 @@ __global__ void applyBoundaryCouplingsKernel(
     int csrIndex = csrIndices[idx];
     cuDoubleComplex contrib = complexMul(csrVal[csrIndex], bcValues[boundaryPos[idx]]);
     atomicAddComplex(&b[row], make_cuDoubleComplex(-cuCreal(contrib), -cuCimag(contrib)));
+    csrVal[csrIndex] = make_cuDoubleComplex(0.0, 0.0);
+}
+
+__global__ void applyBoundaryCouplingsDualKernel(
+    int nCouplings,
+    const int* rows,
+    const int* csrIndices,
+    const int* boundaryPos,
+    cuDoubleComplex* csrVal,
+    const cuDoubleComplex* bcValuesPol1,
+    const cuDoubleComplex* bcValuesPol2,
+    cuDoubleComplex* bPol1,
+    cuDoubleComplex* bPol2)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= nCouplings) {
+        return;
+    }
+
+    int row = rows[idx];
+    int csrIndex = csrIndices[idx];
+    int bcIndex = boundaryPos[idx];
+    cuDoubleComplex matrixValue = csrVal[csrIndex];
+    cuDoubleComplex contribPol1 = complexMul(matrixValue, bcValuesPol1[bcIndex]);
+    cuDoubleComplex contribPol2 = complexMul(matrixValue, bcValuesPol2[bcIndex]);
+    atomicAddComplex(&bPol1[row], make_cuDoubleComplex(-cuCreal(contribPol1), -cuCimag(contribPol1)));
+    atomicAddComplex(&bPol2[row], make_cuDoubleComplex(-cuCreal(contribPol2), -cuCimag(contribPol2)));
     csrVal[csrIndex] = make_cuDoubleComplex(0.0, 0.0);
 }
 
@@ -135,12 +189,44 @@ __global__ void applyBoundaryRowsKernel(
     b[row] = bcValues[boundaryPos[idx]];
 }
 
+__global__ void applyBoundaryRowsDualKernel(
+    int nBoundaryRows,
+    const int* rows,
+    const int* rowStarts,
+    const int* rowEnds,
+    const int* diagIndices,
+    const int* boundaryPos,
+    cuDoubleComplex* csrVal,
+    const cuDoubleComplex* bcValuesPol1,
+    const cuDoubleComplex* bcValuesPol2,
+    cuDoubleComplex* bPol1,
+    cuDoubleComplex* bPol2)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= nBoundaryRows) {
+        return;
+    }
+
+    int row = rows[idx];
+    for (int csrIdx = rowStarts[idx]; csrIdx < rowEnds[idx]; ++csrIdx) {
+        csrVal[csrIdx] = make_cuDoubleComplex(0.0, 0.0);
+    }
+    int diagIndex = diagIndices[idx];
+    if (diagIndex >= 0) {
+        csrVal[diagIndex] = make_cuDoubleComplex(1.0, 0.0);
+    }
+    int bcIndex = boundaryPos[idx];
+    bPol1[row] = bcValuesPol1[bcIndex];
+    bPol2[row] = bcValuesPol2[bcIndex];
+}
+
 __global__ void extractSurfaceFieldsKernel(
     int nxPad,
     int nyPad,
     int coreNx,
     int coreNy,
     int npad,
+    int surfaceLayer,
     double freq,
     const double* hx,
     const double* hy,
@@ -159,11 +245,11 @@ __global__ void extractSurfaceFieldsKernel(
     int jCore = flatIdx / coreNx;
     int i = iCore + npad;
     int j = jCore + npad;
-    int elemIdx = i + j * nxPad;
+    int elemIdx = i + j * nxPad + surfaceLayer * nxPad * nyPad;
 
     double dx = hx[i];
     double dy = hy[j];
-    double dz = hz[0];
+    double dz = hz[surfaceLayer];
 
     int e0 = meEdges[12 * elemIdx + 0];
     int e1 = meEdges[12 * elemIdx + 1];
@@ -187,9 +273,6 @@ __global__ void extractSurfaceFieldsKernel(
     cuDoubleComplex ezX0 = complexScale(complexAdd(x[e8], x[e11]), 0.5);
     cuDoubleComplex ezX1 = complexScale(complexAdd(x[e9], x[e10]), 0.5);
 
-    cuDoubleComplex exCenter = complexScale(complexAdd(exZ0, exZ1), 0.5);
-    cuDoubleComplex eyCenter = complexScale(complexAdd(eyZ0, eyZ1), 0.5);
-
     cuDoubleComplex dEyDz = complexScale(complexSub(eyZ1, eyZ0), 1.0 / dz);
     cuDoubleComplex dExDz = complexScale(complexSub(exZ1, exZ0), 1.0 / dz);
     cuDoubleComplex dEzDy = complexScale(complexSub(ezY1, ezY0), 1.0 / dy);
@@ -200,8 +283,11 @@ __global__ void extractSurfaceFieldsKernel(
     cuDoubleComplex hxField = complexDiv(complexSub(dEzDy, dEyDz), negIwMu);
     cuDoubleComplex hyField = complexDiv(complexSub(dExDz, dEzDx), negIwMu);
 
-    fields[4 * flatIdx + 0] = exCenter;
-    fields[4 * flatIdx + 1] = eyCenter;
+    // MT stations are located on the top face (z=0), not at the center of
+    // the first earth cell. The lowest-order element curl is constant through
+    // the cell and provides the earth-side magnetic-field trace.
+    fields[4 * flatIdx + 0] = exZ0;
+    fields[4 * flatIdx + 1] = eyZ0;
     fields[4 * flatIdx + 2] = hxField;
     fields[4 * flatIdx + 3] = hyField;
 }
@@ -240,12 +326,16 @@ __global__ void computeResponsesKernel(
     cuDoubleComplex f2Hy = fieldsPol2[4 * flatIdx + 3];
 
     cuDoubleComplex detH = complexSub(complexMul(f1Hx, f2Hy), complexMul(f2Hx, f1Hy));
-    double rhoXY = 0.0;
-    double rhoYX = 0.0;
-    double phiXY = 0.0;
-    double phiYX = 0.0;
+    double invalid = nan("");
+    double rhoXY = invalid;
+    double rhoYX = invalid;
+    double phiXY = invalid;
+    double phiYX = invalid;
 
-    if (complexAbsSq(detH) > 1e-30) {
+    double h1NormSq = complexAbsSq(f1Hx) + complexAbsSq(f1Hy);
+    double h2NormSq = complexAbsSq(f2Hx) + complexAbsSq(f2Hy);
+    double determinantThreshold = fmax(1e-300, 1e-24 * h1NormSq * h2NormSq);
+    if (complexAbsSq(detH) > determinantThreshold) {
         cuDoubleComplex zxy = complexDiv(
             complexSub(complexMul(f2Ex, f1Hx), complexMul(f1Ex, f2Hx)),
             detH
@@ -333,27 +423,99 @@ extern "C" void gpu_apply_boundary_conditions(
     cudaDeviceSynchronize();
 }
 
+extern "C" void gpu_apply_boundary_conditions_dual(
+    int boundaryEdgeCount,
+    const int* d_boundaryEdgeFamilies,
+    const int* d_boundaryEdgeZIndices,
+    const double* d_zCoords,
+    cuDoubleComplex k_num,
+    int couplingCount,
+    const int* d_couplingRows,
+    const int* d_couplingCsrIndices,
+    const int* d_couplingBoundaryPos,
+    int boundaryRowCount,
+    const int* d_boundaryRowRows,
+    const int* d_boundaryRowStarts,
+    const int* d_boundaryRowEnds,
+    const int* d_boundaryRowDiagIndices,
+    const int* d_boundaryRowBoundaryPos,
+    cuDoubleComplex* d_csrVal,
+    cuDoubleComplex* d_b_pol1,
+    cuDoubleComplex* d_b_pol2,
+    cuDoubleComplex* d_bcValuesPol1,
+    cuDoubleComplex* d_bcValuesPol2,
+    cudaStream_t stream)
+{
+    int threads = 256;
+    if (boundaryEdgeCount > 0) {
+        int blocks = (boundaryEdgeCount + threads - 1) / threads;
+        computeBoundaryValuesDualKernel<<<blocks, threads, 0, stream>>>(
+            boundaryEdgeCount,
+            d_boundaryEdgeFamilies,
+            d_boundaryEdgeZIndices,
+            d_zCoords,
+            k_num,
+            d_bcValuesPol1,
+            d_bcValuesPol2
+        );
+    }
+
+    if (couplingCount > 0) {
+        int blocks = (couplingCount + threads - 1) / threads;
+        applyBoundaryCouplingsDualKernel<<<blocks, threads, 0, stream>>>(
+            couplingCount,
+            d_couplingRows,
+            d_couplingCsrIndices,
+            d_couplingBoundaryPos,
+            d_csrVal,
+            d_bcValuesPol1,
+            d_bcValuesPol2,
+            d_b_pol1,
+            d_b_pol2
+        );
+    }
+
+    if (boundaryRowCount > 0) {
+        int blocks = (boundaryRowCount + threads - 1) / threads;
+        applyBoundaryRowsDualKernel<<<blocks, threads, 0, stream>>>(
+            boundaryRowCount,
+            d_boundaryRowRows,
+            d_boundaryRowStarts,
+            d_boundaryRowEnds,
+            d_boundaryRowDiagIndices,
+            d_boundaryRowBoundaryPos,
+            d_csrVal,
+            d_bcValuesPol1,
+            d_bcValuesPol2,
+            d_b_pol1,
+            d_b_pol2
+        );
+    }
+}
+
 extern "C" void gpu_extract_surface_fields_2d(
     int nxPad,
     int nyPad,
     int coreNx,
     int coreNy,
     int npad,
+    int surfaceLayer,
     double freq,
     const double* d_hx,
     const double* d_hy,
     const double* d_hz,
     const int* d_meEdges,
     const cuDoubleComplex* d_x,
-    cuDoubleComplex* d_fields)
+    cuDoubleComplex* d_fields,
+    cudaStream_t stream)
 {
     int nStations = coreNx * coreNy;
     int threads = 256;
     int blocks = (nStations + threads - 1) / threads;
-    extractSurfaceFieldsKernel<<<blocks, threads>>>(
-        nxPad, nyPad, coreNx, coreNy, npad, freq, d_hx, d_hy, d_hz, d_meEdges, d_x, d_fields
+    extractSurfaceFieldsKernel<<<blocks, threads, 0, stream>>>(
+        nxPad, nyPad, coreNx, coreNy, npad, surfaceLayer, freq,
+        d_hx, d_hy, d_hz, d_meEdges, d_x, d_fields
     );
-    cudaDeviceSynchronize();
 }
 
 extern "C" void gpu_compute_mt_responses(
@@ -363,13 +525,13 @@ extern "C" void gpu_compute_mt_responses(
     const cuDoubleComplex* d_fields_pol1,
     const cuDoubleComplex* d_fields_pol2,
     double* d_app_res_slice,
-    double* d_phase_slice)
+    double* d_phase_slice,
+    cudaStream_t stream)
 {
     int nStations = nx * ny;
     int threads = 256;
     int blocks = (nStations + threads - 1) / threads;
-    computeResponsesKernel<<<blocks, threads>>>(
+    computeResponsesKernel<<<blocks, threads, 0, stream>>>(
         nx, ny, freq, d_fields_pol1, d_fields_pol2, d_app_res_slice, d_phase_slice
     );
-    cudaDeviceSynchronize();
 }

@@ -1,25 +1,70 @@
 // src/mesh3d.cpp
 #include "../include/mesh3d.h"
-#include <iostream>
+#include <cmath>
+#include <limits>
+#include <stdexcept>
 
-HostMesh3D generateMesh3D(int NX, int NY, int NZ, 
-                          const std::vector<double>& hx, 
-                          const std::vector<double>& hy, 
+HostMesh3D generateMesh3D(int NX, int NY, int NZ,
+                          const std::vector<double>& hx,
+                          const std::vector<double>& hy,
                           const std::vector<double>& hz) {
+    if (NX <= 0 || NY <= 0 || NZ <= 0) {
+        throw std::invalid_argument("mesh dimensions must be positive");
+    }
+    if (hx.size() != static_cast<size_t>(NX)
+        || hy.size() != static_cast<size_t>(NY)
+        || hz.size() != static_cast<size_t>(NZ)) {
+        throw std::invalid_argument("cell-width arrays must match the mesh dimensions");
+    }
+    auto invalidWidth = [](double width) {
+        return !std::isfinite(width) || width <= 0.0;
+    };
+    for (double width : hx) {
+        if (invalidWidth(width)) {
+            throw std::invalid_argument("x cell widths must be positive and finite");
+        }
+    }
+    for (double width : hy) {
+        if (invalidWidth(width)) {
+            throw std::invalid_argument("y cell widths must be positive and finite");
+        }
+    }
+    for (double width : hz) {
+        if (invalidWidth(width)) {
+            throw std::invalid_argument("z cell widths must be positive and finite");
+        }
+    }
+
+    constexpr long long maxInt = std::numeric_limits<int>::max();
+    long long elementCount = static_cast<long long>(NX) * NY * NZ;
+    long long nodeCount =
+        static_cast<long long>(NX + 1LL) * (NY + 1LL) * (NZ + 1LL);
+    long long xEdgeCount =
+        static_cast<long long>(NX) * (NY + 1LL) * (NZ + 1LL);
+    long long yEdgeCount =
+        static_cast<long long>(NX + 1LL) * NY * (NZ + 1LL);
+    long long zEdgeCount =
+        static_cast<long long>(NX + 1LL) * (NY + 1LL) * NZ;
+    long long edgeCount = xEdgeCount + yEdgeCount + zEdgeCount;
+    if (elementCount > maxInt || nodeCount > maxInt || edgeCount > maxInt
+        || elementCount > maxInt / 12) {
+        throw std::overflow_error("mesh exceeds 32-bit topology capacity");
+    }
+
     HostMesh3D mesh;
     mesh.NX = NX; mesh.NY = NY; mesh.NZ = NZ;
     mesh.hx = hx; mesh.hy = hy; mesh.hz = hz;
 
-    mesh.NE = NX * NY * NZ;
-    mesh.NP = (NX + 1) * (NY + 1) * (NZ + 1);
+    mesh.NE = static_cast<int>(elementCount);
+    mesh.NP = static_cast<int>(nodeCount);
 
-    int nEx = NX * (NY + 1) * (NZ + 1); 
-    int nEy = (NX + 1) * NY * (NZ + 1); 
-    int nEz = (NX + 1) * (NY + 1) * NZ; 
-    mesh.NEdges = nEx + nEy + nEz;
+    int nEx = static_cast<int>(xEdgeCount);
+    int nEy = static_cast<int>(yEdgeCount);
+    int nEz = static_cast<int>(zEdgeCount);
+    mesh.NEdges = static_cast<int>(edgeCount);
 
-    mesh.ME_Edges.resize(12 * mesh.NE, 0);
-    mesh.ME_Nodes.resize(8 * mesh.NE, 0);
+    mesh.ME_Edges.resize(static_cast<size_t>(12) * mesh.NE, 0);
+    mesh.ME_Nodes.resize(static_cast<size_t>(8) * mesh.NE, 0);
 
     int offset_X = 0;
     int offset_Y = nEx;

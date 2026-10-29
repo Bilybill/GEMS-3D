@@ -47,6 +47,17 @@ def parse_args():
     parser.add_argument("--device", dest="torch_device_preference", type=str, default="auto", choices=["auto", "cpu", "cuda"])
     parser.add_argument("--mt-freq-min", dest="mt_freq_min", type=float, default=None)
     parser.add_argument("--mt-freq-max", dest="mt_freq_max", type=float, default=None)
+    parser.add_argument("--mt-boundary-mode", dest="mt_boundary_mode", choices=["legacy", "explicit_air"], default="explicit_air")
+    parser.add_argument("--mt-air-layers", dest="mt_air_layers", type=int, default=8)
+    parser.add_argument("--mt-air-resistivity", dest="mt_air_resistivity", type=float, default=1.0e8)
+    parser.add_argument("--mt-solver-tolerance", dest="mt_solver_tolerance", type=float, default=None)
+    parser.add_argument("--mt-solver-max-iterations", dest="mt_solver_max_iterations", type=int, default=50000)
+    parser.add_argument("--mt-padding-layers", dest="mt_padding_layers", type=int, default=10)
+    parser.add_argument("--mt-padding-growth", dest="mt_padding_growth", type=float, default=1.4)
+    mt_continuation_group = parser.add_mutually_exclusive_group()
+    mt_continuation_group.add_argument("--mt-frequency-continuation", dest="mt_frequency_continuation", action="store_true")
+    mt_continuation_group.add_argument("--no-mt-frequency-continuation", dest="mt_frequency_continuation", action="store_false")
+    parser.set_defaults(mt_frequency_continuation=None)
     parser.add_argument("--seismic-freq-min", dest="seismic_freq_min", type=float, default=None)
     parser.add_argument("--seismic-freq-max", dest="seismic_freq_max", type=float, default=None)
     parser.add_argument("--seismic-preset", dest="seismic_preset", type=str, default="light", choices=SEISMIC_PRESETS)
@@ -142,6 +153,14 @@ def main():
                 seismic_batch_size=args.seismic_batch_size,
                 mt_freq_min=args.mt_freq_min,
                 mt_freq_max=args.mt_freq_max,
+                mt_boundary_mode=args.mt_boundary_mode,
+                mt_air_layers=args.mt_air_layers,
+                mt_air_resistivity=args.mt_air_resistivity,
+                mt_solver_tolerance=args.mt_solver_tolerance,
+                mt_solver_max_iterations=args.mt_solver_max_iterations,
+                mt_frequency_continuation=args.mt_frequency_continuation,
+                mt_padding_layers=args.mt_padding_layers,
+                mt_padding_growth=args.mt_padding_growth,
                 seismic_freq_min=args.seismic_freq_min,
                 seismic_freq_max=args.seismic_freq_max,
                 save_previews=args.save_previews,

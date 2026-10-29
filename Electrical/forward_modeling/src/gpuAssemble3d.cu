@@ -2,7 +2,28 @@
 #include "../include/mesh3d.h"
 #include <cuda_runtime.h>
 #include <cuComplex.h>
+#include <cmath>
 #include <iostream>
+#include <stdexcept>
+#include <string>
+
+namespace {
+
+void checkCuda(cudaError_t status, const char* operation)
+{
+    if (status != cudaSuccess) {
+        throw std::runtime_error(
+            std::string(operation) + ": " + cudaGetErrorString(status)
+        );
+    }
+}
+
+void checkKernelLaunch(const char* operation)
+{
+    checkCuda(cudaGetLastError(), operation);
+}
+
+} // namespace
 
 // 1. 针对 double 类型的复数原子加法 (CUDA 原生只有 float 版本的复数原子加)
 static __device__ __forceinline__ double atomicAddDoubleCompat(double* address, double val) {
@@ -31,6 +52,261 @@ static __device__ __forceinline__ void atomicAddComplex(cuDoubleComplex* address
     atomicAddDoubleCompat(imagAddr, cuCimag(val));
 }
 
+struct EdgeBasisValue {
+    double nx, ny, nz;
+    double cx, cy, cz;
+};
+
+static __device__ __forceinline__ EdgeBasisValue evaluateEdgeBasis(
+    int edge, double xi, double yi, double zi, double dx, double dy, double dz)
+{
+    EdgeBasisValue value = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+    switch (edge) {
+        case 0:
+            value.nx = (1.0 - yi) * (1.0 - zi);
+            value.cy = -(1.0 - yi) / dz;
+            value.cz = (1.0 - zi) / dy;
+            break;
+        case 1:
+            value.ny = xi * (1.0 - zi);
+            value.cx = xi / dz;
+            value.cz = (1.0 - zi) / dx;
+            break;
+        case 2:
+            value.nx = yi * (1.0 - zi);
+            value.cy = -yi / dz;
+            value.cz = -(1.0 - zi) / dy;
+            break;
+        case 3:
+            value.ny = (1.0 - xi) * (1.0 - zi);
+            value.cx = (1.0 - xi) / dz;
+            value.cz = -(1.0 - zi) / dx;
+            break;
+        case 4:
+            value.nx = (1.0 - yi) * zi;
+            value.cy = (1.0 - yi) / dz;
+            value.cz = zi / dy;
+            break;
+        case 5:
+            value.ny = xi * zi;
+            value.cx = -xi / dz;
+            value.cz = zi / dx;
+            break;
+        case 6:
+            value.nx = yi * zi;
+            value.cy = yi / dz;
+            value.cz = -zi / dy;
+            break;
+        case 7:
+            value.ny = (1.0 - xi) * zi;
+            value.cx = -(1.0 - xi) / dz;
+            value.cz = -zi / dx;
+            break;
+        case 8:
+            value.nz = (1.0 - xi) * (1.0 - yi);
+            value.cx = -(1.0 - xi) / dy;
+            value.cy = (1.0 - yi) / dx;
+            break;
+        case 9:
+            value.nz = xi * (1.0 - yi);
+            value.cx = -xi / dy;
+            value.cy = -(1.0 - yi) / dx;
+            break;
+        case 10:
+            value.nz = xi * yi;
+            value.cx = xi / dy;
+            value.cy = -yi / dx;
+            break;
+        default:
+            value.nz = (1.0 - xi) * yi;
+            value.cx = (1.0 - xi) / dy;
+            value.cy = yi / dx;
+            break;
+    }
+    return value;
+}
+
+__global__ void assembleComponentMatricesKernel(
+    int NE,
+    int NX,
+    int NY,
+    const double* __restrict__ hx,
+    const double* __restrict__ hy,
+    const double* __restrict__ hz,
+    const double* __restrict__ rho,
+    const int* __restrict__ meEdges,
+    const int* __restrict__ csrRowPtr,
+    const int* __restrict__ csrColInd,
+    double* __restrict__ stiffness,
+    double* __restrict__ conductivityMass,
+    int* __restrict__ invalidFlag)
+{
+    int element = blockIdx.x;
+    int pair = threadIdx.x;
+    if (element >= NE || pair >= 144) {
+        return;
+    }
+
+    __shared__ double localDx;
+    __shared__ double localDy;
+    __shared__ double localDz;
+    __shared__ double sigma;
+    __shared__ EdgeBasisValue basisAtGaussPoints[12][8];
+    if (pair == 0) {
+        int planeSize = NX * NY;
+        int k = element / planeSize;
+        int remainder = element - k * planeSize;
+        int j = remainder / NX;
+        int i = remainder - j * NX;
+        localDx = hx[i];
+        localDy = hy[j];
+        localDz = hz[k];
+        sigma = 1.0 / rho[element];
+    }
+    __syncthreads();
+
+    constexpr double invSqrt3 = 0.57735026918962576451;
+    if (pair < 96) {
+        int edge = pair / 8;
+        int quadraturePoint = pair % 8;
+        int ig = quadraturePoint / 4;
+        int jg = (quadraturePoint / 2) % 2;
+        int kg = quadraturePoint % 2;
+        double xi = 0.5 + (ig == 0 ? -0.5 : 0.5) * invSqrt3;
+        double yi = 0.5 + (jg == 0 ? -0.5 : 0.5) * invSqrt3;
+        double zi = 0.5 + (kg == 0 ? -0.5 : 0.5) * invSqrt3;
+        basisAtGaussPoints[edge][quadraturePoint] = evaluateEdgeBasis(
+            edge, xi, yi, zi, localDx, localDy, localDz
+        );
+    }
+    __syncthreads();
+
+    int localRow = pair / 12;
+    int localCol = pair % 12;
+    int row = meEdges[12 * element + localRow];
+    int col = meEdges[12 * element + localCol];
+    int csrIndex = -1;
+    for (int idx = csrRowPtr[row]; idx < csrRowPtr[row + 1]; ++idx) {
+        if (csrColInd[idx] == col) {
+            csrIndex = idx;
+            break;
+        }
+    }
+    if (csrIndex < 0) {
+        atomicExch(invalidFlag, 1);
+        return;
+    }
+
+    double weight = localDx * localDy * localDz * 0.125;
+    double stiffnessValue = 0.0;
+    double massValue = 0.0;
+
+#pragma unroll
+    for (int quadraturePoint = 0; quadraturePoint < 8; ++quadraturePoint) {
+        EdgeBasisValue rowBasis = basisAtGaussPoints[localRow][quadraturePoint];
+        EdgeBasisValue colBasis = basisAtGaussPoints[localCol][quadraturePoint];
+        stiffnessValue += (
+            rowBasis.cx * colBasis.cx
+            + rowBasis.cy * colBasis.cy
+            + rowBasis.cz * colBasis.cz
+        ) * weight;
+        massValue += sigma * (
+            rowBasis.nx * colBasis.nx
+            + rowBasis.ny * colBasis.ny
+            + rowBasis.nz * colBasis.nz
+        ) * weight;
+    }
+
+    if (stiffnessValue != 0.0) {
+        atomicAddDoubleCompat(&stiffness[csrIndex], stiffnessValue);
+    }
+    if (massValue != 0.0) {
+        atomicAddDoubleCompat(&conductivityMass[csrIndex], massValue);
+    }
+}
+
+__global__ void combineComponentMatricesKernel(
+    int nnz,
+    double invOmegaMu,
+    const double* __restrict__ stiffness,
+    const double* __restrict__ conductivityMass,
+    cuDoubleComplex* __restrict__ values)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < nnz) {
+        values[idx] = make_cuDoubleComplex(
+            conductivityMass[idx],
+            -stiffness[idx] * invOmegaMu
+        );
+    }
+}
+
+extern "C" void gpu_assemble_component_matrices(
+    int NE,
+    int NX,
+    int NY,
+    int nnz,
+    const double* d_hx,
+    const double* d_hy,
+    const double* d_hz,
+    const double* d_rho,
+    const int* d_meEdges,
+    const int* d_csrRowPtr,
+    const int* d_csrColInd,
+    double* d_stiffness,
+    double* d_conductivityMass,
+    int* d_invalidFlag,
+    cudaStream_t stream)
+{
+    if (NE <= 0 || NX <= 0 || NY <= 0 || nnz <= 0) {
+        throw std::invalid_argument("GPU component assembly dimensions must be positive");
+    }
+    if (!d_hx || !d_hy || !d_hz || !d_rho || !d_meEdges
+        || !d_csrRowPtr || !d_csrColInd || !d_stiffness
+        || !d_conductivityMass || !d_invalidFlag) {
+        throw std::invalid_argument("GPU component assembly received a null device pointer");
+    }
+    checkCuda(
+        cudaMemsetAsync(d_stiffness, 0, static_cast<size_t>(nnz) * sizeof(double), stream),
+        "clearing stiffness component"
+    );
+    checkCuda(
+        cudaMemsetAsync(d_conductivityMass, 0, static_cast<size_t>(nnz) * sizeof(double), stream),
+        "clearing conductivity component"
+    );
+    checkCuda(cudaMemsetAsync(d_invalidFlag, 0, sizeof(int), stream), "clearing assembly validation flag");
+    assembleComponentMatricesKernel<<<NE, 144, 0, stream>>>(
+        NE, NX, NY, d_hx, d_hy, d_hz, d_rho,
+        d_meEdges, d_csrRowPtr, d_csrColInd,
+        d_stiffness, d_conductivityMass, d_invalidFlag
+    );
+    checkKernelLaunch("launching component assembly kernel");
+}
+
+extern "C" void gpu_combine_component_matrices(
+    int nnz,
+    double freq,
+    const double* d_stiffness,
+    const double* d_conductivityMass,
+    cuDoubleComplex* d_values,
+    cudaStream_t stream)
+{
+    if (nnz <= 0 || !std::isfinite(freq) || freq <= 0.0) {
+        throw std::invalid_argument("matrix combination requires a positive finite frequency and nonzero nnz");
+    }
+    if (!d_stiffness || !d_conductivityMass || !d_values) {
+        throw std::invalid_argument("matrix combination received a null device pointer");
+    }
+    constexpr double mu = 4.0e-7 * M_PI;
+    double invOmegaMu = 1.0 / (2.0 * M_PI * freq * mu);
+    int threads = 256;
+    int blocks = (nnz + threads - 1) / threads;
+    combineComponentMatricesKernel<<<blocks, threads, 0, stream>>>(
+        nnz, invOmegaMu, d_stiffness, d_conductivityMass, d_values
+    );
+    checkKernelLaunch("launching matrix combination kernel");
+}
+
 // 2. 将 CPU 的 computeLocalMatrix3D 移植为设备函数
 __device__ void computeLocalMatrix3D_device(double dx, double dy, double dz, double freq, double rho_val, cuDoubleComplex Ke[12][12]) {
     double mu = 4e-7 * M_PI;
@@ -53,7 +329,7 @@ __device__ void computeLocalMatrix3D_device(double dx, double dy, double dz, dou
         for(int jg = 0; jg < 2; jg++) {
             for(int kg = 0; kg < 2; kg++) {
                 double x = gp[ig] * dx, y = gp[jg] * dy, z = gp[kg] * dz;
-                double dV = (dx * dy * dz) * (gw * 2) * (gw * 2) * (gw * 2);
+                double dV = (dx * dy * dz) * gw * gw * gw;
                 double xi = x/dx, yi = y/dy, zi = z/dz;
                 
                 double Nx[12]={0}, Ny[12]={0}, Nz[12]={0};
@@ -166,8 +442,16 @@ extern "C" void gpu_femAssemble3D_Matrix(
     const int* d_csrRowPtr, const int* d_csrColInd, 
     cuDoubleComplex* d_csrVal, int nnz)
 {
+    if (NE <= 0 || NX <= 0 || NY <= 0 || nnz <= 0
+        || !std::isfinite(freq) || freq <= 0.0) {
+        throw std::invalid_argument("GPU assembly dimensions and frequency must be positive and finite");
+    }
+    if (!d_hx || !d_hy || !d_hz || !d_rho || !d_ME_Edges
+        || !d_csrRowPtr || !d_csrColInd || !d_csrVal) {
+        throw std::invalid_argument("GPU assembly received a null device pointer");
+    }
     // 每次计算新频率前，必须将矩阵值显存清零
-    cudaMemset(d_csrVal, 0, nnz * sizeof(cuDoubleComplex));
+    checkCuda(cudaMemset(d_csrVal, 0, nnz * sizeof(cuDoubleComplex)), "clearing assembled matrix");
 
     int threadsPerBlock = 256;
     int blocksPerGrid = (NE + threadsPerBlock - 1) / threadsPerBlock;
@@ -179,5 +463,6 @@ extern "C" void gpu_femAssemble3D_Matrix(
         d_ME_Edges, 
         d_csrRowPtr, d_csrColInd, d_csrVal
     );
-    cudaDeviceSynchronize();
+    checkKernelLaunch("launching legacy assembly kernel");
+    checkCuda(cudaDeviceSynchronize(), "synchronizing legacy assembly kernel");
 }

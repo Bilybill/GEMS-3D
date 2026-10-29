@@ -3,6 +3,7 @@
 #define BOUNDARYCONDITIONS3D_H
 
 #include <cuComplex.h>
+#include <cuda_runtime_api.h>
 #include "mesh3d.h"
 #include <vector>
 #include <complex>
@@ -11,7 +12,8 @@ struct BoundaryConditionPlan;
 
 BoundaryConditionPlan* createBoundaryConditionPlan3D(const HostMesh3D &mesh,
                                                      const std::vector<int> &csrColInd,
-                                                     const std::vector<int> &csrRowPtr);
+                                                     const std::vector<int> &csrRowPtr,
+                                                     int earthSurfaceLayer = 0);
 
 void destroyBoundaryConditionPlan3D(BoundaryConditionPlan* plan);
 
@@ -33,5 +35,12 @@ void applyBoundaryConditions3DDevice(double freq, double rho_bg,
                                      cuDoubleComplex* d_b,
                                      int polarization,
                                      const BoundaryConditionPlan* plan);
+
+void applyBoundaryConditions3DDeviceDual(double freq, double rho_bg,
+                                         cuDoubleComplex* d_csrVal,
+                                         cuDoubleComplex* d_b_pol1,
+                                         cuDoubleComplex* d_b_pol2,
+                                         const BoundaryConditionPlan* plan,
+                                         cudaStream_t stream);
 
 #endif // BOUNDARYCONDITIONS3D_H

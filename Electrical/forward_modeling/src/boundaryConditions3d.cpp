@@ -7,6 +7,7 @@
 #include <memory>
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 
 extern "C" void gpu_apply_boundary_conditions(
     int boundaryEdgeCount,
@@ -29,7 +30,39 @@ extern "C" void gpu_apply_boundary_conditions(
     cuDoubleComplex* d_b,
     cuDoubleComplex* d_bcValues);
 
+extern "C" void gpu_apply_boundary_conditions_dual(
+    int boundaryEdgeCount,
+    const int* d_boundaryEdgeFamilies,
+    const int* d_boundaryEdgeZIndices,
+    const double* d_zCoords,
+    cuDoubleComplex k_num,
+    int couplingCount,
+    const int* d_couplingRows,
+    const int* d_couplingCsrIndices,
+    const int* d_couplingBoundaryPos,
+    int boundaryRowCount,
+    const int* d_boundaryRowRows,
+    const int* d_boundaryRowStarts,
+    const int* d_boundaryRowEnds,
+    const int* d_boundaryRowDiagIndices,
+    const int* d_boundaryRowBoundaryPos,
+    cuDoubleComplex* d_csrVal,
+    cuDoubleComplex* d_b_pol1,
+    cuDoubleComplex* d_b_pol2,
+    cuDoubleComplex* d_bcValuesPol1,
+    cuDoubleComplex* d_bcValuesPol2,
+    cudaStream_t stream);
+
 namespace {
+
+void checkCuda(cudaError_t status, const char* operation)
+{
+    if (status != cudaSuccess) {
+        throw std::runtime_error(
+            std::string(operation) + ": " + cudaGetErrorString(status)
+        );
+    }
+}
 
 struct BoundaryCouplingEntry {
     int row;
@@ -57,6 +90,7 @@ struct BoundaryConditionPlanImpl {
     std::vector<int> boundaryRowBoundaryPos;
 
     int nEdges = 0;
+    int device = -1;
     double* d_zCoords = nullptr;
     int* d_boundaryEdgeFamilies = nullptr;
     int* d_boundaryEdgeZIndices = nullptr;
@@ -68,7 +102,8 @@ struct BoundaryConditionPlanImpl {
     int* d_boundaryRowEnds = nullptr;
     int* d_boundaryRowDiagIndices = nullptr;
     int* d_boundaryRowBoundaryPos = nullptr;
-    cuDoubleComplex* d_bcValues = nullptr;
+    cuDoubleComplex* d_bcValuesPol1 = nullptr;
+    cuDoubleComplex* d_bcValuesPol2 = nullptr;
 };
 
 template <typename T>
@@ -78,8 +113,14 @@ void copyVectorToDevice(const std::vector<T>& host, T*& devicePtr)
         devicePtr = nullptr;
         return;
     }
-    cudaMalloc(reinterpret_cast<void**>(&devicePtr), host.size() * sizeof(T));
-    cudaMemcpy(devicePtr, host.data(), host.size() * sizeof(T), cudaMemcpyHostToDevice);
+    checkCuda(
+        cudaMalloc(reinterpret_cast<void**>(&devicePtr), host.size() * sizeof(T)),
+        "allocating boundary-condition metadata"
+    );
+    checkCuda(
+        cudaMemcpy(devicePtr, host.data(), host.size() * sizeof(T), cudaMemcpyHostToDevice),
+        "copying boundary-condition metadata"
+    );
 }
 
 void freePlanDeviceBuffers(BoundaryConditionPlanImpl& plan)
@@ -95,7 +136,8 @@ void freePlanDeviceBuffers(BoundaryConditionPlanImpl& plan)
     cudaFree(plan.d_boundaryRowEnds);
     cudaFree(plan.d_boundaryRowDiagIndices);
     cudaFree(plan.d_boundaryRowBoundaryPos);
-    cudaFree(plan.d_bcValues);
+    cudaFree(plan.d_bcValuesPol1);
+    cudaFree(plan.d_bcValuesPol2);
 
     plan.d_zCoords = nullptr;
     plan.d_boundaryEdgeFamilies = nullptr;
@@ -108,11 +150,13 @@ void freePlanDeviceBuffers(BoundaryConditionPlanImpl& plan)
     plan.d_boundaryRowEnds = nullptr;
     plan.d_boundaryRowDiagIndices = nullptr;
     plan.d_boundaryRowBoundaryPos = nullptr;
-    plan.d_bcValues = nullptr;
+    plan.d_bcValuesPol1 = nullptr;
+    plan.d_bcValuesPol2 = nullptr;
 }
 
 void initializePlanDeviceBuffers(BoundaryConditionPlanImpl& plan)
 {
+    checkCuda(cudaGetDevice(&plan.device), "querying boundary-condition CUDA device");
     copyVectorToDevice(plan.zCoords, plan.d_zCoords);
     copyVectorToDevice(plan.boundaryEdgeFamilies, plan.d_boundaryEdgeFamilies);
     copyVectorToDevice(plan.boundaryEdgeZIndices, plan.d_boundaryEdgeZIndices);
@@ -153,19 +197,32 @@ void initializePlanDeviceBuffers(BoundaryConditionPlanImpl& plan)
     copyVectorToDevice(plan.boundaryRowBoundaryPos, plan.d_boundaryRowBoundaryPos);
 
     if (!plan.boundaryEdges.empty()) {
-        cudaMalloc(reinterpret_cast<void**>(&plan.d_bcValues), plan.boundaryEdges.size() * sizeof(cuDoubleComplex));
+        checkCuda(
+            cudaMalloc(reinterpret_cast<void**>(&plan.d_bcValuesPol1), plan.boundaryEdges.size() * sizeof(cuDoubleComplex)),
+            "allocating polarization-1 boundary values"
+        );
+        checkCuda(
+            cudaMalloc(reinterpret_cast<void**>(&plan.d_bcValuesPol2), plan.boundaryEdges.size() * sizeof(cuDoubleComplex)),
+            "allocating polarization-2 boundary values"
+        );
     }
 }
 
 BoundaryConditionPlanImpl buildBoundaryConditionPlanImpl(const HostMesh3D &mesh,
                                                          const std::vector<int> &csrColInd,
-                                                         const std::vector<int> &csrRowPtr)
+                                                         const std::vector<int> &csrRowPtr,
+                                                         int earthSurfaceLayer)
 {
     BoundaryConditionPlanImpl plan;
 
     int NX = mesh.NX;
     int NY = mesh.NY;
     int NZ = mesh.NZ;
+    if (earthSurfaceLayer < 0 || earthSurfaceLayer >= NZ) {
+        throw std::invalid_argument(
+            "earth surface layer must select a valid earth-side cell"
+        );
+    }
 
     int nEx = NX * (NY + 1) * (NZ + 1);
     int nEy = (NX + 1) * NY * (NZ + 1);
@@ -175,7 +232,11 @@ BoundaryConditionPlanImpl buildBoundaryConditionPlanImpl(const HostMesh3D &mesh,
     int offset_Z = nEx + nEy;
 
     plan.nEdges = mesh.NEdges;
-    plan.zCoords.assign(NZ + 1, 0.0);
+    double surfaceZ = 0.0;
+    for (int k = 0; k < earthSurfaceLayer; ++k) {
+        surfaceZ += mesh.hz[k];
+    }
+    plan.zCoords.assign(NZ + 1, -surfaceZ);
     for (int k = 0; k < NZ; ++k) {
         plan.zCoords[k + 1] = plan.zCoords[k] + mesh.hz[k];
     }
@@ -277,7 +338,12 @@ BoundaryConditionPlanImpl buildBoundaryConditionPlanImpl(const HostMesh3D &mesh,
         }
     }
 
-    initializePlanDeviceBuffers(plan);
+    try {
+        initializePlanDeviceBuffers(plan);
+    } catch (...) {
+        freePlanDeviceBuffers(plan);
+        throw;
+    }
 
     return plan;
 }
@@ -293,16 +359,37 @@ struct BoundaryConditionPlan {};
 
 BoundaryConditionPlan* createBoundaryConditionPlan3D(const HostMesh3D &mesh,
                                                      const std::vector<int> &csrColInd,
-                                                     const std::vector<int> &csrRowPtr)
+                                                     const std::vector<int> &csrRowPtr,
+                                                     int earthSurfaceLayer)
 {
-    auto impl = buildBoundaryConditionPlanImpl(mesh, csrColInd, csrRowPtr);
-    return reinterpret_cast<BoundaryConditionPlan*>(new BoundaryConditionPlanImpl(std::move(impl)));
+    auto impl = buildBoundaryConditionPlanImpl(
+        mesh, csrColInd, csrRowPtr, earthSurfaceLayer
+    );
+    try {
+        return reinterpret_cast<BoundaryConditionPlan*>(
+            new BoundaryConditionPlanImpl(std::move(impl))
+        );
+    } catch (...) {
+        freePlanDeviceBuffers(impl);
+        throw;
+    }
 }
 
 void destroyBoundaryConditionPlan3D(BoundaryConditionPlan* plan)
 {
+    if (!plan) {
+        return;
+    }
     auto* impl = reinterpret_cast<BoundaryConditionPlanImpl*>(plan);
+    int previousDevice = -1;
+    cudaGetDevice(&previousDevice);
+    if (impl->device >= 0 && impl->device != previousDevice) {
+        cudaSetDevice(impl->device);
+    }
     freePlanDeviceBuffers(*impl);
+    if (previousDevice >= 0 && impl->device != previousDevice) {
+        cudaSetDevice(previousDevice);
+    }
     delete impl;
 }
 
@@ -354,13 +441,15 @@ void applyBoundaryConditions3D(const HostMesh3D &mesh, double freq, double rho_b
             if (polarization == 1) {
                 int local = edgeId;
                 int k_idx = local / (NX * (NY + 1));
-                bc_values[boundaryPos] = std::exp(neg_i * k_num * plan->zCoords[k_idx]);
+                double depth = std::max(0.0, plan->zCoords[k_idx]);
+                bc_values[boundaryPos] = std::exp(neg_i * k_num * depth);
             }
         } else if (edgeId < offset_Z) {
             if (polarization == 2) {
                 int local = edgeId - offset_Y;
                 int k_idx = local / ((NX + 1) * NY);
-                bc_values[boundaryPos] = std::exp(neg_i * k_num * plan->zCoords[k_idx]);
+                double depth = std::max(0.0, plan->zCoords[k_idx]);
+                bc_values[boundaryPos] = std::exp(neg_i * k_num * depth);
             }
         }
     }
@@ -393,6 +482,17 @@ void applyBoundaryConditions3DDevice(double freq, double rho_bg,
     if (!plan) {
         throw std::runtime_error("BoundaryConditionPlan is required for device-side BC application");
     }
+    int currentDevice = -1;
+    checkCuda(cudaGetDevice(&currentDevice), "querying current CUDA device");
+    if (currentDevice != plan->device) {
+        throw std::runtime_error("BoundaryConditionPlan is bound to a different CUDA device");
+    }
+    if (!(std::isfinite(freq) && freq > 0.0 && std::isfinite(rho_bg) && rho_bg > 0.0)) {
+        throw std::invalid_argument("Boundary-condition frequency and background resistivity must be positive and finite");
+    }
+    if (!d_csrVal || !d_b) {
+        throw std::invalid_argument("Boundary-condition matrix and RHS pointers must be non-null");
+    }
 
     double mu = 4e-7 * M_PI;
     double w = 2.0 * M_PI * freq;
@@ -401,9 +501,15 @@ void applyBoundaryConditions3DDevice(double freq, double rho_bg,
     std::complex<double> k_num_host = std::sqrt(neg_i * w * mu * sigma);
     cuDoubleComplex k_num = make_cuDoubleComplex(k_num_host.real(), k_num_host.imag());
 
-    cudaMemset(d_b, 0, plan->nEdges * sizeof(cuDoubleComplex));
+    checkCuda(
+        cudaMemset(d_b, 0, plan->nEdges * sizeof(cuDoubleComplex)),
+        "clearing boundary-condition RHS"
+    );
     if (!plan->boundaryEdges.empty()) {
-        cudaMemset(plan->d_bcValues, 0, plan->boundaryEdges.size() * sizeof(cuDoubleComplex));
+        checkCuda(
+            cudaMemset(plan->d_bcValuesPol1, 0, plan->boundaryEdges.size() * sizeof(cuDoubleComplex)),
+            "clearing boundary values"
+        );
     }
 
     gpu_apply_boundary_conditions(
@@ -425,6 +531,70 @@ void applyBoundaryConditions3DDevice(double freq, double rho_bg,
         plan->d_boundaryRowBoundaryPos,
         d_csrVal,
         d_b,
-        plan->d_bcValues
+        plan->d_bcValuesPol1
+    );
+}
+
+void applyBoundaryConditions3DDeviceDual(double freq, double rho_bg,
+                                         cuDoubleComplex* d_csrVal,
+                                         cuDoubleComplex* d_b_pol1,
+                                         cuDoubleComplex* d_b_pol2,
+                                         const BoundaryConditionPlan* planHandle,
+                                         cudaStream_t stream)
+{
+    const auto* plan = unwrapPlan(planHandle);
+    if (!plan) {
+        throw std::runtime_error("BoundaryConditionPlan is required for device-side BC application");
+    }
+    int currentDevice = -1;
+    checkCuda(cudaGetDevice(&currentDevice), "querying current CUDA device");
+    if (currentDevice != plan->device) {
+        throw std::runtime_error("BoundaryConditionPlan is bound to a different CUDA device");
+    }
+    if (!(std::isfinite(freq) && freq > 0.0 && std::isfinite(rho_bg) && rho_bg > 0.0)) {
+        throw std::invalid_argument("Boundary-condition frequency and background resistivity must be positive and finite");
+    }
+    if (!d_csrVal || !d_b_pol1 || !d_b_pol2) {
+        throw std::invalid_argument("Dual boundary-condition matrix and RHS pointers must be non-null");
+    }
+
+    double mu = 4e-7 * M_PI;
+    double omega = 2.0 * M_PI * freq;
+    double sigma = 1.0 / rho_bg;
+    std::complex<double> neg_i(0.0, -1.0);
+    std::complex<double> k_num_host = std::sqrt(neg_i * omega * mu * sigma);
+    cuDoubleComplex k_num = make_cuDoubleComplex(k_num_host.real(), k_num_host.imag());
+
+    checkCuda(
+        cudaMemsetAsync(d_b_pol1, 0, plan->nEdges * sizeof(cuDoubleComplex), stream),
+        "clearing polarization-1 RHS"
+    );
+    checkCuda(
+        cudaMemsetAsync(d_b_pol2, 0, plan->nEdges * sizeof(cuDoubleComplex), stream),
+        "clearing polarization-2 RHS"
+    );
+
+    gpu_apply_boundary_conditions_dual(
+        static_cast<int>(plan->boundaryEdges.size()),
+        plan->d_boundaryEdgeFamilies,
+        plan->d_boundaryEdgeZIndices,
+        plan->d_zCoords,
+        k_num,
+        static_cast<int>(plan->boundaryCouplings.size()),
+        plan->d_couplingRows,
+        plan->d_couplingCsrIndices,
+        plan->d_couplingBoundaryPos,
+        static_cast<int>(plan->boundaryRows.size()),
+        plan->d_boundaryRowRows,
+        plan->d_boundaryRowStarts,
+        plan->d_boundaryRowEnds,
+        plan->d_boundaryRowDiagIndices,
+        plan->d_boundaryRowBoundaryPos,
+        d_csrVal,
+        d_b_pol1,
+        d_b_pol2,
+        plan->d_bcValuesPol1,
+        plan->d_bcValuesPol2,
+        stream
     );
 }
