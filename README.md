@@ -1,12 +1,14 @@
 # GEMS-3D
 
-**GEMS-3D** is a curated public release of the GMESDataset codebase for 3D geological multiphysics simulation and benchmark construction. It builds aligned 3D property volumes and forward responses for gravity, magnetic, magnetotelluric, and seismic tasks.
+**GEMS-3D** is a framework for 3D geological multiphysics simulation and benchmark construction. It builds aligned 3D property volumes and forward responses for gravity, magnetic, magnetotelluric, and seismic tasks.
 
-The project is organized for dataset-track review: core geological model generation, reproducible model/forward bundle builders, benchmark datasets, baseline models, and a static project page under `docs/`.
+The project provides geological model generation, reproducible model and forward-response bundle builders, benchmark datasets, baseline models, and a project page under `docs/`.
 
-![GEMS-3D anomaly preview](3D_Anomalies_Preview.png)
+[![GEMS-3D pipeline: geological conditions, facies-aware property generation, multiphysics forward modeling, and downstream benchmarks](docs/assets/paper/dataset-pipeline.webp)](docs/assets/paper/dataset-pipeline.pdf)
 
-## What Is Included
+Geological conditions drive the generation of aligned physical property volumes and gravity, magnetic, magnetotelluric, and seismic responses, forming a unified data package for operator learning, inverse interpretation, and robustness evaluation. [View the full-resolution figure (PDF)](docs/assets/paper/dataset-pipeline.pdf).
+
+## Features
 
 - Registry-driven 3D geological anomaly generation in `core/anomalies/` and `core/presets.py`.
 - Facies-aware multiphysics property construction for `vp`, `rho`, `res`, and `chi`.
@@ -14,8 +16,6 @@ The project is organized for dataset-track review: core geological model generat
 - Large-scale model and forward-bundle generation scripts.
 - Benchmark indexing, dataset loaders, training, evaluation, and metric code under `experiments/`.
 - Static project homepage in `docs/index.html`.
-
-Exploratory sample code, local cache data, compiled binaries, debug outputs, and machine-specific batch scripts were intentionally removed from this public tree.
 
 ## Repository Layout
 
@@ -48,7 +48,7 @@ Optional components:
 python -m pip install -e ".[seismic,visualization]"
 ```
 
-The MT extension under `Electrical/forward_modeling/` contains C++/CUDA sources. Build it only when you need full MT forward modeling; model generation and the gravity/magnetic/seismic benchmark code can be inspected without compiling the extension.
+For MT forward modeling, build the C++/CUDA extension following the instructions in [`Electrical/forward_modeling/README.md`](Electrical/forward_modeling/README.md).
 
 ## Build Multiphysics Models
 
@@ -108,7 +108,7 @@ python experiments/train_classification.py --root outputs/PretrainDataset_forwar
 python experiments/train_forward_surrogate.py --root outputs/PretrainDataset_forward
 ```
 
-Current benchmark scope:
+Benchmark tasks:
 
 - Forward surrogates: `rho -> gravity`, `chi -> magnetic`, `res -> MT`, `vp -> seismic`, and joint four-property input.
 - Inverse interpretation: observation-to-property reconstruction plus anomaly-family classification utilities.
@@ -125,9 +125,3 @@ python -m http.server 8000 -d docs
 Then visit `http://localhost:8000`.
 
 For GitHub Pages, publish the `docs/` directory.
-
-## Release Notes
-
-This repository is ready as a public-code staging tree. Before an official release:
-
-- Replace provisional URLs in `pyproject.toml` and `CITATION.cff` if the final repository lives elsewhere.
